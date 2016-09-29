@@ -1,0 +1,10 @@
+site_name: pytest-fixture-mark
+site_description: It helps to use fixtures in pytest.mark.parametrize (issues/349)
+site_author: Marsel Zaripov
+
+theme: readthedocs
+
+repo_url: https://github.com/tvorog/pytest-fixture-mark
+
+pages:
+- Home: index.md
