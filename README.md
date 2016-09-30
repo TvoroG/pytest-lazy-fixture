@@ -1,18 +1,9 @@
 pytest-fixture-mark
 ===================================
 
-.. image:: https://travis-ci.org/tvorog/pytest-fixture-mark.svg?branch=master
-    :target: https://travis-ci.org/tvorog/pytest-fixture-mark
-    :alt: See Build Status on Travis CI
-
-.. image:: https://ci.appveyor.com/api/projects/status/github/tvorog/pytest-fixture-mark?branch=master
-    :target: https://ci.appveyor.com/project/tvorog/pytest-fixture-mark/branch/master
-    :alt: See Build Status on AppVeyor
-
 It helps to use fixtures in pytest.mark.parametrize ([issues/349](https://github.com/pytest-dev/pytest/issues/349))
 
 Not ready yet
-----
 
 
 Usage
@@ -57,16 +48,16 @@ Features
 
 Contributing
 ------------
-Contributions are very welcome. Tests can be run with `tox`_, please ensure
+Contributions are very welcome. Tests can be run with `tox`, please ensure
 the coverage at least stays the same before you submit a pull request.
 
 License
 -------
 
-Distributed under the terms of the `MIT`_ license, "pytest-fixture-mark" is free and open source software
+Distributed under the terms of the `MIT` license, "pytest-fixture-mark" is free and open source software
 
 
 Issues
 ------
 
-If you encounter any problems, please `file an issue`_ along with a detailed description.
+If you encounter any problems, please `file an issue` along with a detailed description.
