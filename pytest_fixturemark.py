@@ -2,43 +2,32 @@
 import py
 import os
 import pytest
-from _pytest.mark import MarkDecorator, MarkInfo
-from _pytest.fixtures import getfixturemarker, FixtureDef, scopenum_function
+from _pytest.mark import MarkDecorator
+from _pytest.fixtures import scopenum_function
 
 
 def pytest_runtest_setup(item):
-    # if 'fixture' in item.keywords and isinstance(item.keywords['fixture'], MarkInfo):
-    #     for mark in item.keywords['fixture']:
-    #         fixture_name = mark.args[0]
-    #         item.funcargs[fixture_name] = item._request.getfixturevalue(fixture_name)
-
     if hasattr(item, 'callspec'):
-        if 'fixture' in item.keywords and isinstance(item.keywords['fixture'], MarkDecorator):
-            if not item.keywords['fixture'].args:
-                for param in item.callspec.params:
-                    val = item.callspec.params[param]
-                    if not isinstance(val, MarkDecorator):
-                        item.callspec.params[param] = MarkDecorator('fixture', args=(val,))
+        if has_fixture_mark(item) and not item.keywords['fixture'].args:
+            for param, val in item.callspec.params.items():
+                if not isinstance(val, MarkDecorator):
+                    item.callspec.params[param] = MarkDecorator('fixture', args=(val,))
 
-        for param in item.callspec.params:
-            val = item.callspec.params[param]
+        for param, val in item.callspec.params.items():
             if isinstance(val, MarkDecorator) and val.name == 'fixture':
                 fixture_name = val.args[0]
                 item.callspec.params[param] = item._request.getfixturevalue(fixture_name)
 
 
 def pytest_runtest_call(item):
-    for arg in item.funcargs:
-        val = item.funcargs[arg]
-        if isinstance(val, MarkDecorator) and val.name == 'fixture':
-            fixture_name = val.args[0]
-            item.funcargs[arg] = item._request.getfixturevalue(fixture_name)
+    for arg, val in item.funcargs.items():
+        if is_fixture_mark(val):
+            item.funcargs[arg] = item._request.getfixturevalue(val.args[0])
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_generate_tests(metafunc):
-    outcome = yield
-
+    yield
     normalize_metafunc_calls(metafunc, 'funcargs')
     normalize_metafunc_calls(metafunc, 'params')
 
@@ -62,7 +51,7 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
     newcalls = []
     for arg in valtype_keys:
         val = getattr(callspec, valtype)[arg]
-        if isinstance(val, MarkDecorator) and val.name == 'fixture':
+        if is_fixture_mark(val):
             fname = val.args[0]
             nodeid = get_nodeid(metafunc.module, config.rootdir)
             fdef = fm.getfixturedefs(fname, nodeid)
@@ -71,13 +60,21 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
                     newcallspec = callspec.copy(metafunc)
                     newcallspec.params[fname] = param
                     newcallspec.indices[fname] = i
-                    # TODO: sort out scope in pytest.mark.parameterize
+                    # TODO: for now it uses only function scope
                     newcallspec._arg2scopenum[fname] = scopenum_function
                     calls = normalize_call(newcallspec, metafunc, valtype, used_keys | set([arg]))
                     newcalls.extend(calls)
                 return newcalls
         used_keys = used_keys | set([arg])
     return [callspec]
+
+
+def has_fixture_mark(item):
+    return 'fixture' in item.keywords and is_fixture_mark(item.keywords['fixture'])
+
+
+def is_fixture_mark(val):
+    return isinstance(val, MarkDecorator) and val.name == 'fixture'
 
 
 def get_nodeid(module, rootdir):

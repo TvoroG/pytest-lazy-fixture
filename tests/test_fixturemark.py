@@ -42,7 +42,8 @@ def test_several_fixtures_in_parametrize_with_params(testdir):
         {'one': 2, 'two': 4}
     ]
 
-    is_subset = lambda subset, superset: all(superset[k] == subset[k] for k in subset)
+    def is_subset(subset, superset):
+        return all(superset[k] == subset[k] for k in subset)
     for item in items:
         assert any(is_subset(result, item.callspec.params) for result in expected_results)
 

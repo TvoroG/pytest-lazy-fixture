@@ -21,7 +21,7 @@ setup(
     license='MIT',
     url='https://github.com/tvorog/pytest-fixture-mark',
     description='It helps to use fixtures in pytest.mark.parametrize (issues/349)',
-    long_description=read('README.rst'),
+    long_description=read('README.md'),
     py_modules=['pytest_fixturemark'],
     install_requires=['pytest>=2.9.2'],
     classifiers=[
