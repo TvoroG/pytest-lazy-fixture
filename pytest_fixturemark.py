@@ -13,6 +13,13 @@ def pytest_runtest_setup(item):
     #         item.funcargs[fixture_name] = item._request.getfixturevalue(fixture_name)
 
     if hasattr(item, 'callspec'):
+        if 'fixture' in item.keywords and isinstance(item.keywords['fixture'], MarkDecorator):
+            if not item.keywords['fixture'].args:
+                for param in item.callspec.params:
+                    val = item.callspec.params[param]
+                    if not isinstance(val, MarkDecorator):
+                        item.callspec.params[param] = MarkDecorator('fixture', args=(val,))
+
         for param in item.callspec.params:
             val = item.callspec.params[param]
             if isinstance(val, MarkDecorator) and val.name == 'fixture':
@@ -34,7 +41,6 @@ def pytest_generate_tests(metafunc):
 
     normalize_metafunc_calls(metafunc, 'funcargs')
     normalize_metafunc_calls(metafunc, 'params')
-    print(metafunc._calls)
 
 
 def normalize_metafunc_calls(metafunc, valtype):

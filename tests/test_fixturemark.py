@@ -85,3 +85,42 @@ def test_fixtures_with_params_in_parametrize_with_indirect(testdir):
     assert len(items) == 2
     assert items[0].callspec.params['two'] == 1
     assert items[1].callspec.params['two'] == 2
+
+
+def test_fixture_mark_is_value_in_parametrize(testdir):
+    testdir.makepyfile("""
+        import pytest
+        @pytest.fixture
+        def one():
+            return 1
+        @pytest.fixture
+        def two():
+            return 2
+        @pytest.mark.parametrize('arg1,arg2', [
+            pytest.mark.fixture(('one', 'two'))
+        ])
+        def test_func(arg1, arg2):
+            assert arg1 == 1
+            assert arg2 == 2
+    """)
+    reprec = testdir.inline_run()
+    reprec.assertoutcome(passed=1)
+
+
+def test_fixture_mark_is_value_in_parametrize_with_indirect(testdir):
+    testdir.makepyfile("""
+        import pytest
+        @pytest.fixture
+        def one(request):
+            return request.param
+        @pytest.fixture
+        def two():
+            return 2
+        @pytest.mark.parametrize('one', [
+            pytest.mark.fixture('two')
+        ], indirect=True)
+        def test_func(one):
+            assert one == 2
+    """)
+    reprec = testdir.inline_run()
+    reprec.assertoutcome(passed=1)
