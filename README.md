@@ -60,11 +60,6 @@ def test_func(arg1, arg2):
     assert arg2 == 2
 ```
 
-Features
---------
-
-* TODO
-
 Contributing
 ------------
 Contributions are very welcome. Tests can be run with `tox`, please ensure
