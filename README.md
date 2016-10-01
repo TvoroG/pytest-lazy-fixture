@@ -41,6 +41,25 @@ def test_func(arg1, one):
     assert one in [3, 4]
 ```
 
+``` python
+import pytest
+
+@pytest.fixture
+def one():
+    return 1
+
+@pytest.fixture
+def two():
+    return 2
+
+@pytest.mark.parametrize('arg1,arg2', [
+    pytest.mark.fixture(('one', 'two'))
+])
+def test_func(arg1, arg2):
+    assert arg1 == 1
+    assert arg2 == 2
+```
+
 Features
 --------
 
