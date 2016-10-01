@@ -124,3 +124,25 @@ def test_fixture_mark_is_value_in_parametrize_with_indirect(testdir):
     """)
     reprec = testdir.inline_run()
     reprec.assertoutcome(passed=1)
+
+
+def test_fixture_mark_as_param_of_fixture(testdir):
+    testdir.makepyfile("""
+        import pytest
+        @pytest.fixture(params=[
+            pytest.mark.fixture('one'),
+            pytest.mark.fixture('two')
+        ])
+        def some(request):
+            return request.param
+        @pytest.fixture
+        def one():
+            return 1
+        @pytest.fixture
+        def two():
+            return 2
+        def test_func(some):
+            assert some in [1, 2]
+    """)
+    reprec = testdir.inline_run()
+    reprec.assertoutcome(passed=2)
