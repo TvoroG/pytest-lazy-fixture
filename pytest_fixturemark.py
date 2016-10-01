@@ -55,7 +55,7 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
             fname = val.args[0]
             nodeid = get_nodeid(metafunc.module, config.rootdir)
             fdef = fm.getfixturedefs(fname, nodeid)
-            if fdef and fdef[0].params:
+            if fdef and fdef[-1].params:
                 for i, param in enumerate(fdef[0].params):
                     newcallspec = callspec.copy(metafunc)
                     newcallspec.params[fname] = param
