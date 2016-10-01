@@ -60,6 +60,28 @@ def test_func(arg1, arg2):
     assert arg2 == 2
 ```
 
+``` python
+import pytest
+
+@pytest.fixture(params=[
+    pytest.mark.fixture('one'),
+    pytest.mark.fixture('two')
+])
+def some(request):
+    return request.param
+
+@pytest.fixture
+def one():
+    return 1
+
+@pytest.fixture
+def two():
+    return 2
+
+def test_func(some):
+    assert some in [1, 2]
+```
+
 Contributing
 ------------
 Contributions are very welcome. Tests can be run with `tox`, please ensure
