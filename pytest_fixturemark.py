@@ -58,10 +58,11 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
             if fdef and fdef[-1].params:
                 for i, param in enumerate(fdef[0].params):
                     newcallspec = callspec.copy(metafunc)
-                    newcallspec.params[fname] = param
-                    newcallspec.indices[fname] = i
                     # TODO: for now it uses only function scope
-                    newcallspec._arg2scopenum[fname] = scopenum_function
+                    # TODO: idlist
+                    newcallspec.setmulti({fname: 'params'},
+                                         (fname,), (param,),
+                                         None, (), scopenum_function, i)
                     calls = normalize_call(newcallspec, metafunc, valtype, used_keys | set([arg]))
                     newcalls.extend(calls)
                 return newcalls
