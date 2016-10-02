@@ -20,9 +20,10 @@ def pytest_runtest_setup(item):
 
 
 def pytest_runtest_call(item):
-    for arg, val in item.funcargs.items():
-        if is_fixture_mark(val):
-            item.funcargs[arg] = item._request.getfixturevalue(val.args[0])
+    if hasattr(item, 'funcargs'):
+        for arg, val in item.funcargs.items():
+            if is_fixture_mark(val):
+                item.funcargs[arg] = item._request.getfixturevalue(val.args[0])
 
 
 @pytest.hookimpl(hookwrapper=True)
