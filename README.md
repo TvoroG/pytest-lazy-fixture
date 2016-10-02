@@ -1,10 +1,7 @@
 pytest-fixture-mark ![build status](https://travis-ci.org/TvoroG/pytest-fixture-mark.svg?branch=master)
 ===================================
 
-It helps to use fixtures in pytest.mark.parametrize ([issues/349](https://github.com/pytest-dev/pytest/issues/349))
-
-Not ready yet
-
+It helps to use fixtures in pytest.mark.parametrize.
 
 Usage
 -----
@@ -84,8 +81,7 @@ def test_func(some):
 
 Contributing
 ------------
-Contributions are very welcome. Tests can be run with `tox`, please ensure
-the coverage at least stays the same before you submit a pull request.
+Contributions are very welcome. Tests can be run with `tox`.
 
 License
 -------
