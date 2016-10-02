@@ -1,4 +1,4 @@
-pytest-fixture-mark ![build status](https://travis-ci.org/TvoroG/pytest-fixture-mark.svg?branch=master)
+pytest-fixture-mark ![build status](https://travis-ci.org/TvoroG/pytest-fixture-mark.svg?branch=master) ![build status](https://ci.appveyor.com/api/projects/status/github/TvoroG/pytest-fixture-mark?branch=master&svg=true)
 ===================================
 
 It helps to use fixtures in pytest.mark.parametrize.
