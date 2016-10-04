@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import pytest
+from pytest_fixturemark import sorted_by_dependency
 
 
 def test_fixture_in_parametrize_with_params(testdir):
@@ -195,55 +197,84 @@ def test_mark_fixture_in_params_which_has_params(testdir):
     reprec.assertoutcome(passed=4)
 
 
-# TODO: need sorting
-# def test_fixture_mark_three_times_nested(testdir):
-#     testdir.makepyfile("""
-#         import pytest
-#         @pytest.fixture(params=[
-#             1, 2, pytest.mark.fixture('three')])
-#         def one(request):
-#             return str(request.param)
-#         @pytest.fixture
-#         def two():
-#             return 4
-#         @pytest.fixture
-#         def three():
-#             return 3
-#         @pytest.fixture(params=[
-#             pytest.mark.fixture('one'),
-#             pytest.mark.fixture('two')
-#         ])
-#         def some(request):
-#             return request.param
-#         def test_func(some):
-#             assert some in {'1', '2', '3', 4}
-#     """)
-#     reprec = testdir.inline_run('-s')
-#     reprec.assertoutcome(passed=4)
+def test_fixture_mark_three_times_nested(testdir):
+    testdir.makepyfile("""
+        import pytest
+        @pytest.fixture(params=[
+            1, 2, pytest.mark.fixture('three')])
+        def one(request):
+            return str(request.param)
+        @pytest.fixture
+        def two():
+            return 4
+        @pytest.fixture
+        def three():
+            return 3
+        @pytest.fixture(params=[
+            pytest.mark.fixture('one'),
+            pytest.mark.fixture('two')
+        ])
+        def some(request):
+            return request.param
+        def test_func(some):
+            assert some in {'1', '2', '3', 4}
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=4)
 
 
-# def test_fixture_mark_three_times_nested_with_one_failed(testdir):
-#     testdir.makepyfile("""
-#         import pytest
-#         @pytest.fixture(params=[
-#             1, 2, pytest.mark.fixture('three')
-#         ])
-#         def one(request):
-#             return str(request.param)
-#         @pytest.fixture
-#         def two():
-#             return 4
-#         @pytest.fixture
-#         def three():
-#             return 5
-#         @pytest.fixture(params=[
-#             pytest.mark.fixture('one'),
-#             pytest.mark.fixture('two')
-#         ])
-#         def some(request):
-#             return request.param
-#         def test_func(some):
-#             assert some in {'1', '2', '3', 4}
-#     """)
-#     reprec = testdir.inline_run('-s')
-#     reprec.assertoutcome(passed=3, failed=1)
+def test_fixture_mark_three_times_nested_with_one_failed(testdir):
+    testdir.makepyfile("""
+        import pytest
+        @pytest.fixture(params=[
+            1, 2, pytest.mark.fixture('three')
+        ])
+        def one(request):
+            return str(request.param)
+        @pytest.fixture
+        def two():
+            return 4
+        @pytest.fixture
+        def three():
+            return 5
+        @pytest.fixture(params=[
+            pytest.mark.fixture('one'),
+            pytest.mark.fixture('two')
+        ])
+        def some(request):
+            return request.param
+        def test_func(some):
+            assert some in {'1', '2', '3', 4}
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=3, failed=1)
+
+
+def fm(fname):
+    return pytest.mark.fixture(fname)
+
+
+@pytest.mark.parametrize('params,expected_paths', [
+    (
+        {'some': fm('one'), 'one': fm('three')},
+        ['one>some'],
+    ),
+    (
+        {'grand1': fm('parent1_1'), 'parent1_1': fm('child1'),
+         'grand2': fm('parent1_2'), 'parent1_2': fm('child1'),
+         'child1': fm('none')},
+        ['child1>parent1_1>grand1>parent1_2>grand2', 'child1>parent1_2>grand2>parent1_1>grand1']
+    ),
+    (
+        {'param1': 'val1', 'param2': 'val2'},
+        ['param1>param2', 'param2>param1']
+    ),
+    ({}, ['']),
+    ({'param1': 'val1'}, ['param1']),
+    ({'param1': fm('some')}, ['param1'])
+])
+def test_sorted_by_dependency(params, expected_paths):
+    sp = sorted_by_dependency(params)
+    path = '>'.join(param for param, _ in sp)
+
+    assert path in expected_paths

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import py
 import os
+from collections import defaultdict
 import pytest
 from _pytest.mark import MarkDecorator
 from _pytest.fixtures import scopenum_function
@@ -9,9 +10,8 @@ from _pytest.fixtures import scopenum_function
 def pytest_runtest_setup(item):
     if hasattr(item, 'callspec'):
         for param, val in sorted_by_dependency(item.callspec.params):
-            if isinstance(val, MarkDecorator) and val.name == 'fixture':
-                fixture_name = val.args[0]
-                item.callspec.params[param] = item._request.getfixturevalue(fixture_name)
+            if is_fixture_mark(val):
+                item.callspec.params[param] = item._request.getfixturevalue(fixture_name(val))
 
 
 def pytest_runtest_call(item):
@@ -47,7 +47,6 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
     config = metafunc.config
 
     used_keys = used_keys or set()
-    # TODO: add some order (for example order of argnames in pytest.mark.parametrize)
     valtype_keys = set(getattr(callspec, valtype).keys()) - used_keys
 
     newcalls = []
@@ -73,13 +72,41 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
 
 
 def all_as_fixture(d):
-    return {key: val if isinstance(val, MarkDecorator) else MarkDecorator('fixture', args=(val,))
-            for key, val in d.items()}
+    return {key: val if is_fixture_mark(val) else pytest.mark.fixture(val) for key, val in d.items()}
 
 
-# TODO:
 def sorted_by_dependency(params):
-    return params.items()
+    not_fm = []
+    free_fm = []
+    non_free_fm = defaultdict(list)
+
+    for key in params:
+        val = params[key]
+
+        if not is_fixture_mark(val):
+            not_fm.append(key)
+        elif fixture_name(val) not in params:
+            free_fm.append(key)
+        else:
+            non_free_fm[fixture_name(val)].append(key)
+
+    non_free_fm_list = []
+    for free_key in free_fm:
+        non_free_fm_list.extend(
+            _tree_to_list(non_free_fm, free_key)
+        )
+
+    return [(key, params[key]) for key in (not_fm + free_fm + non_free_fm_list)]
+
+
+def _tree_to_list(trees, leave):
+    lst = []
+    for l in trees[leave]:
+        lst.append(l)
+        lst.extend(
+            _tree_to_list(trees, l)
+        )
+    return lst
 
 
 def has_fixture_mark(keywords):
@@ -88,6 +115,10 @@ def has_fixture_mark(keywords):
 
 def is_fixture_mark(val):
     return isinstance(val, MarkDecorator) and val.name == 'fixture'
+
+
+def fixture_name(fixture_mark):
+    return fixture_mark.args[0]
 
 
 def get_nodeid(module, rootdir):
