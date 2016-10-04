@@ -8,12 +8,7 @@ from _pytest.fixtures import scopenum_function
 
 def pytest_runtest_setup(item):
     if hasattr(item, 'callspec'):
-        if has_fixture_mark(item) and not item.keywords['fixture'].args:
-            for param, val in item.callspec.params.items():
-                if not isinstance(val, MarkDecorator):
-                    item.callspec.params[param] = MarkDecorator('fixture', args=(val,))
-
-        for param, val in item.callspec.params.items():
+        for param, val in sorted_by_dependency(item.callspec.params):
             if isinstance(val, MarkDecorator) and val.name == 'fixture':
                 fixture_name = val.args[0]
                 item.callspec.params[param] = item._request.getfixturevalue(fixture_name)
@@ -29,6 +24,12 @@ def pytest_runtest_call(item):
 @pytest.hookimpl(hookwrapper=True)
 def pytest_generate_tests(metafunc):
     yield
+
+    for callspec in metafunc._calls:
+        if has_fixture_mark(callspec.keywords) and not callspec.keywords['fixture'].args:
+            callspec.funcargs = all_as_fixture(callspec.funcargs)
+            callspec.params = all_as_fixture(callspec.params)
+
     normalize_metafunc_calls(metafunc, 'funcargs')
     normalize_metafunc_calls(metafunc, 'params')
 
@@ -71,8 +72,18 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
     return [callspec]
 
 
-def has_fixture_mark(item):
-    return 'fixture' in item.keywords and is_fixture_mark(item.keywords['fixture'])
+def all_as_fixture(d):
+    return {key: val if isinstance(val, MarkDecorator) else MarkDecorator('fixture', args=(val,))
+            for key, val in d.items()}
+
+
+# TODO:
+def sorted_by_dependency(params):
+    return params.items()
+
+
+def has_fixture_mark(keywords):
+    return 'fixture' in keywords and is_fixture_mark(keywords['fixture'])
 
 
 def is_fixture_mark(val):

@@ -104,7 +104,31 @@ def test_fixture_mark_is_value_in_parametrize(testdir):
             assert arg1 == 1
             assert arg2 == 2
     """)
-    reprec = testdir.inline_run()
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=1)
+
+
+def test_fixture_mark_as_funcarg_in_parametrize_with_indirect(testdir):
+    testdir.makepyfile("""
+        import pytest
+        @pytest.fixture
+        def one():
+            return 1
+        @pytest.fixture
+        def two():
+            return 2
+        @pytest.fixture
+        def three(request):
+            return request.param
+        @pytest.mark.parametrize('arg1,arg2,three', [
+            (pytest.mark.fixture('one'), pytest.mark.fixture('two'), '3')
+        ], indirect=['three'])
+        def test_func(arg1, arg2, three):
+            assert arg1 == 1
+            assert arg2 == 2
+            assert three == '3'
+    """)
+    reprec = testdir.inline_run('-s')
     reprec.assertoutcome(passed=1)
 
 
@@ -145,5 +169,81 @@ def test_fixture_mark_as_param_of_fixture(testdir):
         def test_func(some):
             assert some in [1, 2]
     """)
-    reprec = testdir.inline_run()
+    reprec = testdir.inline_run('-s')
     reprec.assertoutcome(passed=2)
+
+
+def test_mark_fixture_in_params_which_has_params(testdir):
+    testdir.makepyfile("""
+        import pytest
+        @pytest.fixture(params=[1, 2, 3])
+        def one(request):
+            return str(request.param)
+        @pytest.fixture
+        def two():
+            return 4
+        @pytest.fixture(params=[
+            pytest.mark.fixture('one'),
+            pytest.mark.fixture('two')
+        ])
+        def some(request):
+            return request.param
+        def test_func(some):
+            assert some in {'1', '2', '3', 4}
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=4)
+
+
+# TODO: need sorting
+# def test_fixture_mark_three_times_nested(testdir):
+#     testdir.makepyfile("""
+#         import pytest
+#         @pytest.fixture(params=[
+#             1, 2, pytest.mark.fixture('three')])
+#         def one(request):
+#             return str(request.param)
+#         @pytest.fixture
+#         def two():
+#             return 4
+#         @pytest.fixture
+#         def three():
+#             return 3
+#         @pytest.fixture(params=[
+#             pytest.mark.fixture('one'),
+#             pytest.mark.fixture('two')
+#         ])
+#         def some(request):
+#             return request.param
+#         def test_func(some):
+#             assert some in {'1', '2', '3', 4}
+#     """)
+#     reprec = testdir.inline_run('-s')
+#     reprec.assertoutcome(passed=4)
+
+
+# def test_fixture_mark_three_times_nested_with_one_failed(testdir):
+#     testdir.makepyfile("""
+#         import pytest
+#         @pytest.fixture(params=[
+#             1, 2, pytest.mark.fixture('three')
+#         ])
+#         def one(request):
+#             return str(request.param)
+#         @pytest.fixture
+#         def two():
+#             return 4
+#         @pytest.fixture
+#         def three():
+#             return 5
+#         @pytest.fixture(params=[
+#             pytest.mark.fixture('one'),
+#             pytest.mark.fixture('two')
+#         ])
+#         def some(request):
+#             return request.param
+#         def test_func(some):
+#             assert some in {'1', '2', '3', 4}
+#     """)
+#     reprec = testdir.inline_run('-s')
+#     reprec.assertoutcome(passed=3, failed=1)
