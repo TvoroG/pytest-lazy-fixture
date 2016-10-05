@@ -53,10 +53,10 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
     for arg in valtype_keys:
         val = getattr(callspec, valtype)[arg]
         if is_fixture_mark(val):
-            fname = val.args[0]
+            fname = fixture_name(val)
             nodeid = get_nodeid(metafunc.module, config.rootdir)
             fdef = fm.getfixturedefs(fname, nodeid)
-            if fdef and fdef[-1].params:
+            if fname not in callspec.params and fdef and fdef[-1].params:
                 for i, param in enumerate(fdef[0].params):
                     newcallspec = callspec.copy(metafunc)
                     # TODO: for now it uses only function scope
@@ -76,16 +76,13 @@ def all_as_fixture(d):
 
 
 def sorted_by_dependency(params):
-    not_fm = []
     free_fm = []
     non_free_fm = defaultdict(list)
 
     for key in params:
         val = params[key]
 
-        if not is_fixture_mark(val):
-            not_fm.append(key)
-        elif fixture_name(val) not in params:
+        if not is_fixture_mark(val) or fixture_name(val) not in params:
             free_fm.append(key)
         else:
             non_free_fm[fixture_name(val)].append(key)
@@ -96,7 +93,7 @@ def sorted_by_dependency(params):
             _tree_to_list(non_free_fm, free_key)
         )
 
-    return [(key, params[key]) for key in (not_fm + free_fm + non_free_fm_list)]
+    return [(key, params[key]) for key in (free_fm + non_free_fm_list)]
 
 
 def _tree_to_list(trees, leave):

@@ -250,6 +250,54 @@ def test_fixture_mark_three_times_nested_with_one_failed(testdir):
     reprec.assertoutcome(passed=3, failed=1)
 
 
+def test_fixture_mark_common_dependency(testdir):
+    testdir.makepyfile("""
+        import pytest
+        @pytest.fixture(params=[1, 2, 3])
+        def one(request):
+            return request.param
+        @pytest.fixture(params=[pytest.mark.fixture('one')])
+        def as_str(request):
+            return str(request.param)
+        @pytest.fixture(params=[pytest.mark.fixture('one')])
+        def as_hex(request):
+            return hex(request.param)
+
+        def test_as_str(as_str):
+            assert as_str in {'1', '2', '3'}
+        def test_as_hex(as_hex):
+            assert as_hex in {'0x1', '0x2', '0x3'}
+
+        def test_as_hex_vs_as_str(as_str, as_hex):
+            assert int(as_hex, 16) == int(as_str)
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=9)
+
+
+def test_fixture_mark_common_dependency_with_getfixturevalue(testdir):
+    testdir.makepyfile("""
+        import pytest
+        @pytest.fixture(params=[1, 2, 3])
+        def one(request):
+            return request.param
+        @pytest.fixture(params=[pytest.mark.fixture('one')])
+        def as_str(request):
+            return str(request.getfixturevalue('one'))
+        @pytest.fixture(params=[pytest.mark.fixture('one')])
+        def as_hex(request):
+            return hex(request.getfixturevalue('one'))
+        def test_as_str(as_str):
+            assert as_str in {'1', '2', '3'}
+        def test_as_hex(as_hex):
+            assert as_hex in {'0x1', '0x2', '0x3'}
+        def test_as_hex_vs_as_str(as_str, as_hex):
+            assert int(as_hex, 16) == int(as_str)
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=9)
+
+
 def fm(fname):
     return pytest.mark.fixture(fname)
 
@@ -271,7 +319,11 @@ def fm(fname):
     ),
     ({}, ['']),
     ({'param1': 'val1'}, ['param1']),
-    ({'param1': fm('some')}, ['param1'])
+    ({'param1': fm('some')}, ['param1']),
+    (
+        {'one': 1, 'as_str': fm('one'), 'as_hex': fm('one')},
+        ['one>as_str>as_hex', 'one>as_hex>as_str']
+    )
 ])
 def test_sorted_by_dependency(params, expected_paths):
     sp = sorted_by_dependency(params)
