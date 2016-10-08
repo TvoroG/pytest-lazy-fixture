@@ -14,7 +14,7 @@ def one(request):
     return request.param
 
 @pytest.mark.parametrize('arg1,arg2', [
-    ('val1', pytest.mark.fixture('one')),
+    ('val1', pytest.lazy_fixture('one')),
 ])
 def test_func(arg1, arg2):
     assert arg2 in [1, 2]
@@ -32,7 +32,7 @@ def two(request):
     return request.param
 
 @pytest.mark.parametrize('arg1,one', [
-    ('val1', pytest.mark.fixture('two')),
+    ('val1', pytest.lazy_fixture('two')),
 ], indirect=['one'])
 def test_func(arg1, one):
     assert one in [3, 4]
@@ -50,7 +50,7 @@ def two():
     return 2
 
 @pytest.mark.parametrize('arg1,arg2', [
-    pytest.mark.fixture(('one', 'two'))
+    pytest.lazy_fixture(('one', 'two'))
 ])
 def test_func(arg1, arg2):
     assert arg1 == 1
@@ -61,8 +61,8 @@ def test_func(arg1, arg2):
 import pytest
 
 @pytest.fixture(params=[
-    pytest.mark.fixture('one'),
-    pytest.mark.fixture('two')
+    pytest.lazy_fixture('one'),
+    pytest.lazy_fixture('two')
 ])
 def some(request):
     return request.param

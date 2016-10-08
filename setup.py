@@ -12,7 +12,7 @@ def read(fname):
 
 
 setup(
-    name='pytest-fixture-mark',
+    name='pytest-lazy-fixture',
     version='0.1.0',
     author='Marsel Zaripov',
     author_email='marszaripov@gmail.com',
@@ -22,7 +22,7 @@ setup(
     url='https://github.com/tvorog/pytest-fixture-mark',
     description='It helps to use fixtures in pytest.mark.parametrize (issues/349)',
     long_description=read('README.md'),
-    py_modules=['pytest_fixturemark'],
+    py_modules=['pytest_lazyfixture'],
     install_requires=['pytest>=2.9.2'],
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -43,7 +43,7 @@ setup(
     ],
     entry_points={
         'pytest11': [
-            'fixture-mark = pytest_fixturemark',
+            'lazy-fixture = pytest_lazyfixture',
         ],
     },
 )

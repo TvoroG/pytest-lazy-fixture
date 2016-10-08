@@ -1,34 +1,37 @@
 # -*- coding: utf-8 -*-
 import py
 import os
+import sys
 from collections import defaultdict
 import pytest
-from _pytest.mark import MarkDecorator
 from _pytest.fixtures import scopenum_function
+
+
+PY3 = sys.version_info[0] == 3
+string_type = str if PY3 else basestring
+
+
+def pytest_namespace():
+    return {'lazy_fixture': lazy_fixture}
 
 
 def pytest_runtest_setup(item):
     if hasattr(item, 'callspec'):
         for param, val in sorted_by_dependency(item.callspec.params):
-            if is_fixture_mark(val):
-                item.callspec.params[param] = item._request.getfixturevalue(fixture_name(val))
+            if is_lazy_fixture(val):
+                item.callspec.params[param] = item._request.getfixturevalue(val.name)
 
 
 def pytest_runtest_call(item):
     if hasattr(item, 'funcargs'):
         for arg, val in item.funcargs.items():
-            if is_fixture_mark(val):
+            if is_lazy_fixture(val):
                 item.funcargs[arg] = item._request.getfixturevalue(val.args[0])
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_generate_tests(metafunc):
     yield
-
-    for callspec in metafunc._calls:
-        if has_fixture_mark(callspec.keywords) and not callspec.keywords['fixture'].args:
-            callspec.funcargs = all_as_fixture(callspec.funcargs)
-            callspec.params = all_as_fixture(callspec.params)
 
     normalize_metafunc_calls(metafunc, 'funcargs')
     normalize_metafunc_calls(metafunc, 'params')
@@ -52,8 +55,8 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
     newcalls = []
     for arg in valtype_keys:
         val = getattr(callspec, valtype)[arg]
-        if is_fixture_mark(val):
-            fname = fixture_name(val)
+        if is_lazy_fixture(val):
+            fname = val.name
             nodeid = get_nodeid(metafunc.module, config.rootdir)
             fdef = fm.getfixturedefs(fname, nodeid)
             if fname not in callspec.params and fdef and fdef[-1].params:
@@ -71,10 +74,6 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
     return [callspec]
 
 
-def all_as_fixture(d):
-    return {key: val if is_fixture_mark(val) else pytest.mark.fixture(val) for key, val in d.items()}
-
-
 def sorted_by_dependency(params):
     free_fm = []
     non_free_fm = defaultdict(list)
@@ -82,10 +81,10 @@ def sorted_by_dependency(params):
     for key in params:
         val = params[key]
 
-        if not is_fixture_mark(val) or fixture_name(val) not in params:
+        if not is_lazy_fixture(val) or val.name not in params:
             free_fm.append(key)
         else:
-            non_free_fm[fixture_name(val)].append(key)
+            non_free_fm[val.name].append(key)
 
     non_free_fm_list = []
     for free_key in free_fm:
@@ -106,21 +105,31 @@ def _tree_to_list(trees, leave):
     return lst
 
 
-def has_fixture_mark(keywords):
-    return 'fixture' in keywords and is_fixture_mark(keywords['fixture'])
-
-
-def is_fixture_mark(val):
-    return isinstance(val, MarkDecorator) and val.name == 'fixture'
-
-
-def fixture_name(fixture_mark):
-    return fixture_mark.args[0]
-
-
 def get_nodeid(module, rootdir):
     path = py.path.local(module.__file__)
     relpath = path.relto(rootdir)
     if os.sep != "/":
         relpath = relpath.replace(os.sep, "/")
     return relpath
+
+
+def lazy_fixture(names):
+    if isinstance(names, string_type):
+        return LazyFixture(names)
+    else:
+        return [LazyFixture(name) for name in names]
+
+
+def is_lazy_fixture(val):
+    return isinstance(val, LazyFixture)
+
+
+class LazyFixture(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return '<{} "{}">'.format(self.__class__.__name__, self.name)
+
+    def __eq__(self, other):
+        return self.name == other.name
