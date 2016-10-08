@@ -1,4 +1,4 @@
-pytest-fixture-mark ![build status](https://travis-ci.org/TvoroG/pytest-fixture-mark.svg?branch=master) ![build status](https://ci.appveyor.com/api/projects/status/github/TvoroG/pytest-fixture-mark?branch=master&svg=true)
+pytest-lazy-fixture ![build status](https://travis-ci.org/TvoroG/pytest-fixture-mark.svg?branch=master) ![build status](https://ci.appveyor.com/api/projects/status/github/TvoroG/pytest-fixture-mark?branch=master&svg=true)
 ===================================
 
 It helps to use fixtures in pytest.mark.parametrize.
@@ -86,7 +86,7 @@ Contributions are very welcome. Tests can be run with `tox`.
 License
 -------
 
-Distributed under the terms of the `MIT` license, "pytest-fixture-mark" is free and open source software
+Distributed under the terms of the `MIT` license, "pytest-lazy-fixture" is free and open source software
 
 
 Issues
