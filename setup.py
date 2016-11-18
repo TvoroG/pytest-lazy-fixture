@@ -19,7 +19,7 @@ setup(
     maintainer='Marsel Zaripov',
     maintainer_email='marszaripov@gmail.com',
     license='MIT',
-    url='https://github.com/tvorog/pytest-fixture-mark',
+    url='https://github.com/tvorog/pytest-lazy-fixture',
     description='It helps to use fixtures in pytest.mark.parametrize (issues/349)',
     long_description=read('README.md'),
     py_modules=['pytest_lazyfixture'],
