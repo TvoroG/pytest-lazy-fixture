@@ -13,13 +13,13 @@ def read(fname):
 
 setup(
     name='pytest-lazy-fixture',
-    version='0.1.0',
+    version='0.2.0',
     author='Marsel Zaripov',
     author_email='marszaripov@gmail.com',
     maintainer='Marsel Zaripov',
     maintainer_email='marszaripov@gmail.com',
     license='MIT',
-    url='https://github.com/tvorog/pytest-fixture-mark',
+    url='https://github.com/tvorog/pytest-lazy-fixture',
     description='It helps to use fixtures in pytest.mark.parametrize (issues/349)',
     long_description=read('README.md'),
     py_modules=['pytest_lazyfixture'],

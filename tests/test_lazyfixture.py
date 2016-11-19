@@ -339,6 +339,29 @@ def test_issues2_2(testdir):
     reprec.assertoutcome(passed=3)
 
 
+def test_issues3_autouse_fixtures_should_run_first(testdir):
+    testdir.makepyfile("""
+        import pytest
+        gl = False
+        @pytest.fixture(autouse=True)
+        def auto_one():
+            global gl
+            gl = True
+
+        @pytest.fixture
+        def one():
+            return 1 if gl is True else -1
+
+        @pytest.mark.parametrize('arg1', [
+            pytest.lazy_fixture('one')
+        ])
+        def test_some(arg1):
+            assert arg1 == 1
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=1)
+
+
 def lf(fname):
     return lazy_fixture(fname)
 

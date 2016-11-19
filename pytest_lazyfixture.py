@@ -15,7 +15,15 @@ def pytest_namespace():
     return {'lazy_fixture': lazy_fixture}
 
 
+@pytest.hookimpl(tryfirst=True)
 def pytest_runtest_setup(item):
+    fixturenames = item.fixturenames
+    argnames = item._fixtureinfo.argnames
+
+    for fname in fixturenames:
+        if fname not in item.funcargs and fname not in argnames:
+            item.funcargs[fname] = item._request.getfixturevalue(fname)
+
     if hasattr(item, 'callspec'):
         for param, val in sorted_by_dependency(item.callspec.params):
             if is_lazy_fixture(val):
@@ -26,7 +34,7 @@ def pytest_runtest_call(item):
     if hasattr(item, 'funcargs'):
         for arg, val in item.funcargs.items():
             if is_lazy_fixture(val):
-                item.funcargs[arg] = item._request.getfixturevalue(val.args[0])
+                item.funcargs[arg] = item._request.getfixturevalue(val.name)
 
 
 @pytest.hookimpl(hookwrapper=True)
