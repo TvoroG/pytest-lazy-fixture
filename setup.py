@@ -21,7 +21,7 @@ setup(
     license='MIT',
     url='https://github.com/tvorog/pytest-lazy-fixture',
     description='It helps to use fixtures in pytest.mark.parametrize',
-    long_description=read('README.md'),
+    long_description=read('README.rst'),
     py_modules=['pytest_lazyfixture'],
     install_requires=['pytest>=2.9.2'],
     classifiers=[
