@@ -1,7 +1,14 @@
-pytest-lazy-fixture |travis-ci| |appveyor|
+pytest-lazy-fixture |travis-ci| |appveyor| |pypi|
 =================================================
 
 Use your fixtures in ``@pytest.mark.parametrize``.
+
+Installation
+------------
+
+.. code-block:: shell
+
+    pip install pytest-lazy-fixture
 
 Usage
 -----
@@ -65,4 +72,8 @@ If you encounter any problems, please ``file an issue`` along with a
 detailed description.
 
 .. |travis-ci| image:: https://travis-ci.org/TvoroG/pytest-lazy-fixture.svg?branch=master
+    :target: https://travis-ci.org/TvoroG/pytest-lazy-fixture
 .. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/TvoroG/pytest-fixture-mark?branch=master&svg=true
+    :target: https://ci.appveyor.com/project/TvoroG/pytest-fixture-mark
+.. |pypi| image:: https://badge.fury.io/py/pytest-lazy-fixture.svg
+    :target: https://pypi.python.org/pypi/pytest-lazy-fixture/
