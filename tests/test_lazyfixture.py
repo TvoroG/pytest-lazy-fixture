@@ -362,6 +362,129 @@ def test_issues3_autouse_fixtures_should_run_first(testdir):
     reprec.assertoutcome(passed=1)
 
 
+def test_issues10_xfail(testdir):
+    testdir.makepyfile("""
+        import pytest
+        def division(a, b):
+            return a / b
+
+        @pytest.fixture(params=[0])
+        def zero(request):
+            return request.param
+
+        @pytest.mark.parametrize(('a', 'b'), [
+            pytest.mark.xfail((1, pytest.lazy_fixture('zero')), reason=ZeroDivisionError)
+        ])
+        def test_division(a, b):
+            division(a, b)
+    """)
+    reprec = testdir.inline_run('-s', '-v')
+    reprec.assertoutcome(skipped=1)
+
+
+def test_issues11_autouse_fixture_in_test_class(testdir):
+    testdir.makepyfile("""
+        import pytest
+
+        class TestModels(object):
+            @pytest.fixture(autouse=True)
+            def setup(self):
+                self.var = 15
+
+            def test_model(self):
+                assert self.var == 15
+
+    """)
+    reprec = testdir.inline_run('-s', '-v')
+    reprec.assertoutcome(passed=1)
+
+
+def test_issues12_skip_test_function(testdir):
+    testdir.makepyfile("""
+        import pytest
+
+        @pytest.fixture
+        def one():
+            return 1
+
+        @pytest.mark.parametrize('a', [
+            pytest.mark.skip((pytest.lazy_fixture('one'),), reason='skip')
+        ])
+        def test_skip1(a):
+            assert a == 1
+
+        @pytest.mark.skip(reason='skip')
+        @pytest.mark.parametrize('a', [
+            pytest.lazy_fixture('one')
+        ])
+        def test_skip2(a):
+            assert a == 1
+    """)
+    reprec = testdir.inline_run('-s', '-v')
+    reprec.assertoutcome(skipped=2)
+
+
+def test_issues12_skip_test_method(testdir):
+    testdir.makepyfile("""
+        import pytest
+
+        class TestModels:
+            @pytest.fixture
+            def one(self):
+                return 1
+
+            @pytest.mark.skip(reason='skip this')
+            @pytest.mark.parametrize('a', [
+                pytest.lazy_fixture('one')
+            ])
+            def test_model_a(self, a):
+                assert a == 1
+
+            @pytest.mark.parametrize('a', [
+                pytest.mark.skip((pytest.lazy_fixture('one'),), reason='skip this')
+            ])
+            def test_model_b(self, a):
+                assert a == 1
+    """)
+    reprec = testdir.inline_run('-s', '-v')
+    reprec.assertoutcome(skipped=2)
+
+
+def test_issues12_lf_as_method_of_test_class(testdir):
+    testdir.makepyfile("""
+        import pytest
+
+        class TestModels:
+            @pytest.fixture
+            def one(self):
+                return 1
+
+            @pytest.mark.parametrize('a', [
+                pytest.lazy_fixture('one')
+            ])
+            def test_lf(self, a):
+                assert a == 1
+    """)
+    reprec = testdir.inline_run('-s', '-v')
+    reprec.assertoutcome(passed=1)
+
+
+def test_issues13_unittest_testcase_class_should_not_fail(testdir):
+    testdir.makepyfile("""
+        import unittest
+        import pytest
+
+        class TestModels(unittest.TestCase):
+            def test_models(self):
+                assert True
+
+            def test_models_fail(self):
+                assert False
+    """)
+    reprec = testdir.inline_run('-s', '-v')
+    reprec.assertoutcome(passed=1, failed=1)
+
+
 def lf(fname):
     return lazy_fixture(fname)
 
