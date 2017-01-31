@@ -391,12 +391,15 @@ def test_issues11_autouse_fixture_in_test_class(testdir):
             def setup(self):
                 self.var = 15
 
-            def test_model(self):
+            def test_model_a(self):
+                assert self.var == 15
+
+            def test_model_b(self):
                 assert self.var == 15
 
     """)
     reprec = testdir.inline_run('-s', '-v')
-    reprec.assertoutcome(passed=1)
+    reprec.assertoutcome(passed=2)
 
 
 def test_issues12_skip_test_function(testdir):
