@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
-import py
 import os
 import sys
+import types
 from collections import defaultdict
+import py
 import pytest
 from _pytest.fixtures import scopenum_function
+from _pytest.python import Instance
+from _pytest.unittest import TestCaseFunction
 
 
 PY3 = sys.version_info[0] == 3
@@ -17,6 +20,12 @@ def pytest_namespace():
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_setup(item):
+    if isinstance(item, TestCaseFunction):
+        return
+
+    if isinstance(item.parent, Instance):
+        _patch_instance(item)
+
     fixturenames = item.fixturenames
     argnames = item._fixtureinfo.argnames
 
@@ -119,6 +128,18 @@ def get_nodeid(module, rootdir):
     if os.sep != "/":
         relpath = relpath.replace(os.sep, "/")
     return relpath
+
+
+def _patch_instance(item):
+    obj = Instance.newinstance(item.parent)
+    item.obj = item._getobj()
+
+    def newinstance(self):
+        return obj
+
+    item.parent.newinstance = types.MethodType(
+        newinstance, item.parent
+    )
 
 
 def lazy_fixture(names):
