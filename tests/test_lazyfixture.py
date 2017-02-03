@@ -422,6 +422,9 @@ def test_issues12_skip_test_function(testdir):
         ])
         def test_skip2(a):
             assert a == 1
+
+        def test_after_skip(one):
+            assert one == 1
     """)
     reprec = testdir.inline_run('-s', '-v')
     reprec.assertoutcome(skipped=2)
@@ -448,6 +451,9 @@ def test_issues12_skip_test_method(testdir):
             ])
             def test_model_b(self, a):
                 assert a == 1
+
+            def test_after_skip(one):
+                assert one == 1
     """)
     reprec = testdir.inline_run('-s', '-v')
     reprec.assertoutcome(skipped=2)
