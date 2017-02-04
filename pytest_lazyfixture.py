@@ -18,9 +18,10 @@ def pytest_namespace():
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_setup(item):
-    item._request._fillfixtures = types.MethodType(
-        fillfixtures(item._request._fillfixtures), item._request
-    )
+    if hasattr(item, '_request'):
+        item._request._fillfixtures = types.MethodType(
+            fillfixtures(item._request._fillfixtures), item._request
+        )
 
 
 def fillfixtures(_fillfixtures):
