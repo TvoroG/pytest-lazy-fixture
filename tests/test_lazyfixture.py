@@ -418,7 +418,7 @@ def test_issues12_skip_test_function(testdir):
 
         @pytest.mark.skip(reason='skip')
         @pytest.mark.parametrize('a', [
-            pytest.lazy_fixture('one')
+            (pytest.lazy_fixture('one'),)
         ])
         def test_skip2(a):
             assert a == 1
@@ -427,7 +427,7 @@ def test_issues12_skip_test_function(testdir):
             assert one == 1
     """)
     reprec = testdir.inline_run('-s', '-v')
-    reprec.assertoutcome(skipped=2)
+    reprec.assertoutcome(skipped=2, passed=1)
 
 
 def test_issues12_skip_test_method(testdir):
@@ -441,7 +441,7 @@ def test_issues12_skip_test_method(testdir):
 
             @pytest.mark.skip(reason='skip this')
             @pytest.mark.parametrize('a', [
-                pytest.lazy_fixture('one')
+                (pytest.lazy_fixture('one'),)
             ])
             def test_model_a(self, a):
                 assert a == 1
@@ -452,11 +452,11 @@ def test_issues12_skip_test_method(testdir):
             def test_model_b(self, a):
                 assert a == 1
 
-            def test_after_skip(one):
+            def test_after_skip(self, one):
                 assert one == 1
     """)
     reprec = testdir.inline_run('-s', '-v')
-    reprec.assertoutcome(skipped=2)
+    reprec.assertoutcome(skipped=2, passed=1)
 
 
 def test_issues12_lf_as_method_of_test_class(testdir):
