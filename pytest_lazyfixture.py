@@ -6,8 +6,6 @@ from collections import defaultdict
 import py
 import pytest
 from _pytest.fixtures import scopenum_function
-from _pytest.python import Instance
-from _pytest.unittest import TestCaseFunction
 
 
 PY3 = sys.version_info[0] == 3
@@ -20,23 +18,28 @@ def pytest_namespace():
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_setup(item):
-    if isinstance(item, TestCaseFunction):
-        return
+    item._request._fillfixtures = types.MethodType(
+        fillfixtures(item._request._fillfixtures), item._request
+    )
 
-    if isinstance(item.parent, Instance):
-        _patch_instance(item)
 
-    fixturenames = item.fixturenames
-    argnames = item._fixtureinfo.argnames
+def fillfixtures(_fillfixtures):
+    def fill(request):
+        item = request._pyfuncitem
+        fixturenames = item.fixturenames
+        argnames = item._fixtureinfo.argnames
 
-    for fname in fixturenames:
-        if fname not in item.funcargs and fname not in argnames:
-            item.funcargs[fname] = item._request.getfixturevalue(fname)
+        for fname in fixturenames:
+            if fname not in item.funcargs and fname not in argnames:
+                item.funcargs[fname] = request.getfixturevalue(fname)
 
-    if hasattr(item, 'callspec'):
-        for param, val in sorted_by_dependency(item.callspec.params):
-            if is_lazy_fixture(val):
-                item.callspec.params[param] = item._request.getfixturevalue(val.name)
+        if hasattr(item, 'callspec'):
+            for param, val in sorted_by_dependency(item.callspec.params):
+                if is_lazy_fixture(val):
+                    item.callspec.params[param] = request.getfixturevalue(val.name)
+
+        _fillfixtures()
+    return fill
 
 
 def pytest_runtest_call(item):
@@ -128,18 +131,6 @@ def get_nodeid(module, rootdir):
     if os.sep != "/":
         relpath = relpath.replace(os.sep, "/")
     return relpath
-
-
-def _patch_instance(item):
-    obj = Instance.newinstance(item.parent)
-    item.obj = item._getobj()
-
-    def newinstance(self):
-        return obj
-
-    item.parent.newinstance = types.MethodType(
-        newinstance, item.parent
-    )
 
 
 def lazy_fixture(names):
