@@ -13,7 +13,7 @@ def read(fname):
 
 setup(
     name='pytest-lazy-fixture',
-    version='0.3.0',
+    version='0.3.1',
     author='Marsel Zaripov',
     author_email='marszaripov@gmail.com',
     maintainer='Marsel Zaripov',
