@@ -12,14 +12,14 @@ PY3 = sys.version_info[0] == 3
 string_type = str if PY3 else basestring
 
 
-@pytest.hookimpl(hookwrapper=True)
-def pytest_fixture_setup(fixturedef, request):
-    outcome = yield
-    result = outcome.get_result()
-    if is_lazy_fixture(result):
-        result = request.getfixturevalue(result.name)
-        fixturedef.cached_result = (result, request.param_index, None)
-    return result
+# @pytest.hookimpl(hookwrapper=True)
+# def pytest_fixture_setup(fixturedef, request):
+#     outcome = yield
+#     result = outcome.get_result()
+#     if is_lazy_fixture(result):
+#         result = request.getfixturevalue(result.name)
+#         fixturedef.cached_result = (result, request.param_index, None)
+#     return result
 
 
 def pytest_namespace():
@@ -67,6 +67,13 @@ def normalize_metafunc_calls(metafunc, valtype):
         calls = normalize_call(callspec, metafunc, valtype)
         newcalls.extend(calls)
     metafunc._calls = newcalls
+
+
+def pytest_runtest_call(item):
+    if hasattr(item, 'funcargs'):
+        for arg, val in item.funcargs.items():
+            if is_lazy_fixture(val):
+                item.funcargs[arg] = item._request.getfixturevalue(val.name)
 
 
 def normalize_call(callspec, metafunc, valtype, used_keys=None):
