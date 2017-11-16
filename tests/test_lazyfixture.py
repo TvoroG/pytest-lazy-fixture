@@ -526,3 +526,35 @@ def test_sorted_by_dependency(params, expected_paths):
     path = '>'.join(param for param, _ in sp)
 
     assert path in expected_paths
+
+
+def test_lazyfixture_not_initialize(testdir):
+    """
+    indirect modification fixture one by another.
+    """
+
+    testdir.makepyfile("""
+        import pytest
+
+        @pytest.fixture
+        def one():
+            return [1]
+        
+        @pytest.fixture
+        def plus_two(a):
+            a[0] = a[0] + 2
+
+        def test_skip1(a):
+            assert a == [3]
+        
+        def pytest_generate_tests(metafunc):
+            metafunc.fixturenames = ['a', 'b']
+            metafunc.parametrize(argnames=['a', 'b'],
+                                 argvalues=[(pytest.lazy_fixture('one'), pytest.lazy_fixture('plus_two'))],
+                                 indirect=['b'])
+        
+    """)
+    reprec = testdir.inline_run('-s', '-v')
+    reprec.assertoutcome(passed=1)
+
+
