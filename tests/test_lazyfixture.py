@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
-from pytest_lazyfixture import sorted_by_dependency, lazy_fixture
+from pytest_lazyfixture import sorted_by_dependency, lazy_fixture, _sorted_argnames
 
 
 def test_fixture_in_parametrize_with_params(testdir):
@@ -494,6 +494,52 @@ def test_issues13_unittest_testcase_class_should_not_fail(testdir):
     reprec.assertoutcome(passed=1, failed=1)
 
 
+def test_argnames_initialized_in_right_order(testdir):
+    testdir.makepyfile("""
+        import pytest
+        @pytest.fixture
+        def one():
+            return [1]
+
+        @pytest.fixture
+        def plus_two(a):
+            a[0] = a[0] + 2
+
+        @pytest.mark.parametrize('a,b', [
+            (pytest.lazy_fixture('one'), pytest.lazy_fixture('plus_two'))
+        ])
+        def test_skip1(a, b):
+            assert a == [3]
+    """)
+    reprec = testdir.inline_run('-s', '-v')
+    reprec.assertoutcome(passed=1)
+
+
+# https://github.com/TvoroG/pytest-lazy-fixture/pull/19
+def test_argnames_initialized_in_right_order2(testdir):
+    testdir.makepyfile("""
+        import pytest
+        @pytest.fixture
+        def one():
+            return [1]
+
+        @pytest.fixture
+        def plus_two(a):
+            a[0] = a[0] + 2
+        def test_skip1(a):
+            assert a == [3]
+
+        def pytest_generate_tests(metafunc):
+            metafunc.fixturenames = ['a', 'b']
+            metafunc.parametrize(argnames=['a', 'b'],
+                                 argvalues=[(pytest.lazy_fixture('one'), pytest.lazy_fixture('plus_two'))],
+                                 indirect=['b'])
+
+    """)
+    reprec = testdir.inline_run('-s', '-v')
+    reprec.assertoutcome(passed=1)
+
+
 def lf(fname):
     return lazy_fixture(fname)
 
@@ -522,7 +568,15 @@ def lf(fname):
     )
 ])
 def test_sorted_by_dependency(params, expected_paths):
-    sp = sorted_by_dependency(params)
+    sp = sorted_by_dependency(params, [])
     path = '>'.join(param for param, _ in sp)
 
     assert path in expected_paths
+
+
+@pytest.mark.parametrize('params,fixturenames,expect_keys', [
+    ({'b': 1, 'a': 0}, ['c', 'a', 'd', 'b'], ['a', 'b']),
+    ({'b': 1, 'a': 0}, ['c', 'b'], ['b', 'a'])
+])
+def test_sorted_argnames(params, fixturenames, expect_keys):
+    assert list(_sorted_argnames(params, fixturenames)) == expect_keys

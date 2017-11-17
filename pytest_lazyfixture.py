@@ -35,7 +35,7 @@ def fillfixtures(_fillfixtures):
                 item.funcargs[fname] = request.getfixturevalue(fname)
 
         if hasattr(item, 'callspec'):
-            for param, val in sorted_by_dependency(item.callspec.params):
+            for param, val in sorted_by_dependency(item.callspec.params, fixturenames):
                 if is_lazy_fixture(val):
                     item.callspec.params[param] = request.getfixturevalue(val.name)
 
@@ -95,11 +95,11 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
     return [callspec]
 
 
-def sorted_by_dependency(params):
+def sorted_by_dependency(params, fixturenames):
     free_fm = []
     non_free_fm = defaultdict(list)
 
-    for key in params:
+    for key in _sorted_argnames(params, fixturenames):
         val = params[key]
 
         if not is_lazy_fixture(val) or val.name not in params:
@@ -114,6 +114,19 @@ def sorted_by_dependency(params):
         )
 
     return [(key, params[key]) for key in (free_fm + non_free_fm_list)]
+
+
+def _sorted_argnames(params, fixturenames):
+    argnames = set(params.keys())
+
+    for name in fixturenames:
+        if name in argnames:
+            argnames.remove(name)
+            yield name
+
+    if argnames:
+        for name in argnames:
+            yield name
 
 
 def _tree_to_list(trees, leave):
