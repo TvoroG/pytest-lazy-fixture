@@ -83,11 +83,19 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
             if fname not in callspec.params and fdef and fdef[-1].params:
                 for i, param in enumerate(fdef[0].params):
                     newcallspec = callspec.copy(metafunc)
+
                     # TODO: for now it uses only function scope
                     # TODO: idlist
-                    newcallspec.setmulti({fname: 'params'},
-                                         (fname,), (param,),
-                                         None, (), scopenum_function, i)
+                    setmulti_args = (
+                        {fname: 'params'}, (fname,), (param,),
+                        None, (), scopenum_function, i
+                    )
+                    try:
+                        newcallspec.setmulti2(*setmulti_args)
+                    except AttributeError:
+                        # pytest < 3.3.0
+                        newcallspec.setmulti(*setmulti_args)
+
                     calls = normalize_call(newcallspec, metafunc, valtype, used_keys | set([arg]))
                     newcalls.extend(calls)
                 return newcalls
