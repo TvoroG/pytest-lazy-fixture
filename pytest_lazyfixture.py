@@ -82,7 +82,11 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
             fdef = fm.getfixturedefs(fname, nodeid)
             if fname not in callspec.params and fdef and fdef[-1].params:
                 for i, param in enumerate(fdef[0].params):
-                    newcallspec = callspec.copy(metafunc)
+                    try:
+                        newcallspec = callspec.copy()
+                    except TypeError:
+                        # pytest < 3.6.3
+                        newcallspec = callspec.copy(metafunc)
 
                     # TODO: for now it uses only function scope
                     # TODO: idlist
