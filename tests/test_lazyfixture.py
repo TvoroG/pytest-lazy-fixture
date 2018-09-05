@@ -580,3 +580,59 @@ def test_sorted_by_dependency(params, expected_paths):
 ])
 def test_sorted_argnames(params, fixturenames, expect_keys):
     assert list(_sorted_argnames(params, fixturenames)) == expect_keys
+
+
+def test_lazy_fixture_nested_fixtures(testdir):
+    testdir.makepyfile("""
+        import pytest
+        @pytest.fixture
+        def one(request):
+            return "SOME_VALUE"
+        @pytest.fixture
+        def two(request):
+            return "SOME_VALUE2"
+        @pytest.fixture(params=["one", "two"])
+        def some_fixture1(request):
+            return pytest.lazy_fixture(request.param)
+        @pytest.fixture
+        def some_fixture2(some_fixture1):
+            return "NEW_" + some_fixture1
+        def test_func(some_fixture2):
+            assert ((some_fixture2 == "NEW_SOME_VALUE") or (some_fixture2 == "NEW_SOME_VALUE2"))
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=2)
+
+
+def test_lazy_fixture_nested_fixtures_in_parametrize(testdir):
+    testdir.makepyfile("""
+        import pytest
+        @pytest.fixture
+        def one(request):
+            return "SOME_VALUE"
+        @pytest.fixture
+        def two(request):
+            return "SOME_VALUE2"
+        @pytest.fixture
+        def some_fixture_one():
+            return pytest.lazy_fixture("one")
+        @pytest.fixture
+        def some_fixture_two(request):
+            return pytest.lazy_fixture("two")
+        @pytest.fixture
+        def some_nested_fixture_one(some_fixture_one):
+            return "NEW_" + some_fixture_one
+        @pytest.fixture
+        def some_nested_fixture_two(some_fixture_two):
+            return "NEW_" + some_fixture_two
+        @pytest.mark.parametrize('arg1,arg2,arg3', [
+            ('val1',
+             pytest.lazy_fixture('some_nested_fixture_one'),
+             pytest.lazy_fixture('some_nested_fixture_two')),
+        ])
+        def test_func(arg1, arg2, arg3):
+            assert (arg2 == "NEW_SOME_VALUE")
+            assert (arg3 == "NEW_SOME_VALUE2")
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=1)
