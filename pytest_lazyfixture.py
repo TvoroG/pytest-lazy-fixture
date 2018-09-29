@@ -24,6 +24,13 @@ def pytest_runtest_setup(item):
         )
 
 
+def get_fixture_value(fname, request):
+    res = request.getfixturevalue(fname)
+    while is_lazy_fixture(res):
+        res = request.getfixturevalue(res.name)
+    return res
+
+
 def fillfixtures(_fillfixtures):
     def fill(request):
         item = request._pyfuncitem
@@ -32,12 +39,12 @@ def fillfixtures(_fillfixtures):
 
         for fname in fixturenames:
             if fname not in item.funcargs and fname not in argnames:
-                item.funcargs[fname] = request.getfixturevalue(fname)
+                item.funcargs[fname] = get_fixture_value(fname, request)
 
         if hasattr(item, 'callspec'):
             for param, val in sorted_by_dependency(item.callspec.params, fixturenames):
                 if is_lazy_fixture(val):
-                    item.callspec.params[param] = request.getfixturevalue(val.name)
+                    item.callspec.params[param] = get_fixture_value(val.name, request)
 
         _fillfixtures()
     return fill
@@ -47,7 +54,16 @@ def pytest_runtest_call(item):
     if hasattr(item, 'funcargs'):
         for arg, val in item.funcargs.items():
             if is_lazy_fixture(val):
-                item.funcargs[arg] = item._request.getfixturevalue(val.name)
+                item.funcargs[arg] = get_fixture_value(val.name, item._request)
+
+
+def pytest_fixture_setup(fixturedef, request):
+
+    for argname in fixturedef.argnames:
+        fixdef = request._get_active_fixturedef(argname)
+        result, arg_cache_key, exc = fixdef.cached_result
+        if is_lazy_fixture(result):
+            fixdef.cached_result = (get_fixture_value(result.name, request), arg_cache_key, exc)
 
 
 @pytest.hookimpl(hookwrapper=True)
