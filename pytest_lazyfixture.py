@@ -12,8 +12,8 @@ PY3 = sys.version_info[0] == 3
 string_type = str if PY3 else basestring
 
 
-def pytest_namespace():
-    return {'lazy_fixture': lazy_fixture}
+def pytest_configure():
+    pytest.lazy_fixture = lazy_fixture
 
 
 @pytest.hookimpl(tryfirst=True)
