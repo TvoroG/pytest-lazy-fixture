@@ -373,7 +373,7 @@ def test_issues10_xfail(testdir):
             return request.param
 
         @pytest.mark.parametrize(('a', 'b'), [
-            pytest.mark.xfail((1, pytest.lazy_fixture('zero')), reason=ZeroDivisionError)
+            pytest.param(1, pytest.lazy_fixture('zero'), marks=pytest.mark.xfail(reason=ZeroDivisionError))
         ])
         def test_division(a, b):
             division(a, b)
@@ -411,7 +411,7 @@ def test_issues12_skip_test_function(testdir):
             return 1
 
         @pytest.mark.parametrize('a', [
-            pytest.mark.skip(pytest.lazy_fixture('one'), reason='skip')
+            pytest.param(pytest.lazy_fixture('one'), marks=pytest.mark.skip(reason='skip'))
         ])
         def test_skip1(a):
             assert a == 1
@@ -447,7 +447,7 @@ def test_issues12_skip_test_method(testdir):
                 assert a == 1
 
             @pytest.mark.parametrize('a', [
-                pytest.mark.skip(pytest.lazy_fixture('one'), reason='skip this')
+                pytest.param(pytest.lazy_fixture('one'), marks=pytest.mark.skip(reason='skip this'))
             ])
             def test_model_b(self, a):
                 assert a == 1
