@@ -41,6 +41,13 @@ def fillfixtures(_fillfixtures):
     return fill
 
 
+@pytest.hookimpl(tryfirst=True)
+def pytest_fixture_setup(fixturedef, request):
+    val = getattr(request, 'param', None)
+    if is_lazy_fixture(val):
+        request.param = request.getfixturevalue(val.name)
+
+
 def pytest_runtest_call(item):
     if hasattr(item, 'funcargs'):
         for arg, val in item.funcargs.items():
