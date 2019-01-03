@@ -580,3 +580,91 @@ def test_sorted_by_dependency(params, expected_paths):
 ])
 def test_sorted_argnames(params, fixturenames, expect_keys):
     assert list(_sorted_argnames(params, fixturenames)) == expect_keys
+
+
+def test_lazy_fixtures_with_subfixtures(testdir):
+    testdir.makepyfile("""
+        import pytest
+
+        @pytest.fixture(params=["a", "A"])
+        def a(request):
+            return request.param
+
+        @pytest.fixture(params=["b", "B"])
+        def b(a, request):
+            return request.param + a
+
+        @pytest.fixture
+        def c(a):
+            return "c" + a
+
+        @pytest.fixture(params=[pytest.lazy_fixture('a'), pytest.lazy_fixture('b'), pytest.lazy_fixture('c')])
+        def d(request):
+            return "d" + request.param
+
+        @pytest.fixture(params=[pytest.lazy_fixture('a'), pytest.lazy_fixture('d'), ""])
+        def e(request):
+            return "e" + request.param
+
+        def test_one(d):
+            assert d in ("da", "dA", "dba", "dbA", "dBa", "dBA", "dca", "dcA")
+
+        def test_two(e):
+            assert e in ("ea", "eA", "eda", "edA", "edba", "edbA", "edBa", "edBA", "edca", "edcA", "e")
+    """)
+    reprec = testdir.inline_run('-s', '-v')
+    reprec.assertoutcome(passed=19)
+
+
+def test_lazy_fixtures_in_subfixture(testdir):
+    testdir.makepyfile("""
+        import pytest
+
+        @pytest.fixture
+        def a():
+            return "a"
+
+        @pytest.fixture
+        def b():
+            return "b"
+
+        @pytest.fixture(params=[pytest.lazy_fixture('a'), pytest.lazy_fixture('b')])
+        def c(request):
+            return "c" + request.param
+
+        @pytest.fixture
+        def d(c):
+            return "d" + c
+
+        def test_one(d):
+            assert d in ("dca", "dcb")
+    """)
+    reprec = testdir.inline_run('-s', '-v')
+    reprec.assertoutcome(passed=2)
+
+
+@pytest.mark.parametrize('autouse', [False, True])
+def test_issues23(testdir, autouse):
+    testdir.makepyfile("""
+        import pytest
+
+        @pytest.fixture(params=[0, 1], autouse={})
+        def zero(request):
+            return request.param
+
+        @pytest.fixture(params=[1])
+        def one(request, zero):
+            return zero * request.param
+
+        @pytest.fixture(params=[
+            pytest.lazy_fixture('one'),
+        ])
+        def some(request):
+            return request.param
+
+        def test_func(some):
+            assert some in [0, 1]
+
+    """.format(autouse))
+    reprec = testdir.inline_run('-s', '-v')
+    reprec.assertoutcome(passed=2)
