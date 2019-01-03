@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-import os
 import sys
 import types
 from collections import defaultdict
-import py
 import pytest
 from _pytest.fixtures import scopenum_function
 
@@ -51,6 +49,14 @@ def pytest_runtest_call(item):
 
 
 @pytest.hookimpl(hookwrapper=True)
+def pytest_pycollect_makeitem(collector, name, obj):
+    global current_node
+    current_node = collector
+    yield
+    current_node = None
+
+
+@pytest.hookimpl(hookwrapper=True)
 def pytest_generate_tests(metafunc):
     yield
 
@@ -66,40 +72,57 @@ def normalize_metafunc_calls(metafunc, valtype):
     metafunc._calls = newcalls
 
 
+def parametrize_callspecs(callspecs, metafunc, fname, fparams):
+    allnewcallspecs = []
+    for i, param in enumerate(fparams):
+        try:
+            newcallspecs = [call.copy() for call in callspecs]
+        except TypeError:
+            # pytest < 3.6.3
+            newcallspecs = [call.copy(metafunc) for call in callspecs]
+
+        # TODO: for now it uses only function scope
+        # TODO: idlist
+        setmulti_args = (
+            {fname: 'params'}, (fname,), (param,),
+            None, (), scopenum_function, i
+        )
+        try:
+            for newcallspec in newcallspecs:
+                newcallspec.setmulti2(*setmulti_args)
+        except AttributeError:
+            # pytest < 3.3.0
+            for newcallspec in newcallspecs:
+                newcallspec.setmulti(*setmulti_args)
+        allnewcallspecs.extend(newcallspecs)
+    return allnewcallspecs
+
+
 def normalize_call(callspec, metafunc, valtype, used_keys=None):
     fm = metafunc.config.pluginmanager.get_plugin('funcmanage')
-    config = metafunc.config
 
     used_keys = used_keys or set()
     valtype_keys = set(getattr(callspec, valtype).keys()) - used_keys
 
-    newcalls = []
     for arg in valtype_keys:
         val = getattr(callspec, valtype)[arg]
         if is_lazy_fixture(val):
-            fname = val.name
-            nodeid = get_nodeid(metafunc.module, config.rootdir)
-            fdef = fm.getfixturedefs(fname, nodeid)
-            if fname not in callspec.params and fdef and fdef[-1].params:
-                for i, param in enumerate(fdef[0].params):
-                    try:
-                        newcallspec = callspec.copy()
-                    except TypeError:
-                        # pytest < 3.6.3
-                        newcallspec = callspec.copy(metafunc)
+            try:
+                _, fixturenames_closure, arg2fixturedefs = fm.getfixtureclosure([val.name], metafunc.definition.parent)
+            except AttributeError:
+                # pytest < 3.10.0
+                fixturenames_closure, arg2fixturedefs = fm.getfixtureclosure([val.name], current_node)
 
-                    # TODO: for now it uses only function scope
-                    # TODO: idlist
-                    setmulti_args = (
-                        {fname: 'params'}, (fname,), (param,),
-                        None, (), scopenum_function, i
-                    )
-                    try:
-                        newcallspec.setmulti2(*setmulti_args)
-                    except AttributeError:
-                        # pytest < 3.3.0
-                        newcallspec.setmulti(*setmulti_args)
+            extra_fixture_params = [(fname, arg2fixturedefs[fname][-1].params)
+                                    for fname in fixturenames_closure if fname not in callspec.params
+                                    if arg2fixturedefs.get(fname) and arg2fixturedefs[fname][-1].params]
 
+            if extra_fixture_params:
+                newcallspecs = [callspec]
+                for fname, fparams in extra_fixture_params:
+                    newcallspecs = parametrize_callspecs(newcallspecs, metafunc, fname, fparams)
+                newcalls = []
+                for newcallspec in newcallspecs:
                     calls = normalize_call(newcallspec, metafunc, valtype, used_keys | set([arg]))
                     newcalls.extend(calls)
                 return newcalls
@@ -149,14 +172,6 @@ def _tree_to_list(trees, leave):
             _tree_to_list(trees, l)
         )
     return lst
-
-
-def get_nodeid(module, rootdir):
-    path = py.path.local(module.__file__)
-    relpath = path.relto(rootdir)
-    if os.sep != "/":
-        relpath = relpath.replace(os.sep, "/")
-    return relpath
 
 
 def lazy_fixture(names):
