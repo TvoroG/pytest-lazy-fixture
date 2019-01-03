@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
+import copy
 import sys
 import types
 from collections import defaultdict
 import pytest
-from _pytest.fixtures import scopenum_function
 
 
 PY3 = sys.version_info[0] == 3
@@ -79,30 +79,21 @@ def normalize_metafunc_calls(metafunc, valtype):
     metafunc._calls = newcalls
 
 
-def parametrize_callspecs(callspecs, metafunc, fname, fparams):
-    allnewcallspecs = []
-    for i, param in enumerate(fparams):
-        try:
-            newcallspecs = [call.copy() for call in callspecs]
-        except TypeError:
-            # pytest < 3.6.3
-            newcallspecs = [call.copy(metafunc) for call in callspecs]
+def copy_metafunc(metafunc):
+    copied = copy.copy(metafunc)
+    copied.fixturenames = copy.copy(metafunc.fixturenames)
+    copied._calls = []
+    copied._ids = copy.copy(metafunc._ids)
+    copied._arg2fixturedefs = copy.copy(metafunc._arg2fixturedefs)
+    return copied
 
-        # TODO: for now it uses only function scope
-        # TODO: idlist
-        setmulti_args = (
-            {fname: 'params'}, (fname,), (param,),
-            None, (), scopenum_function, i
-        )
-        try:
-            for newcallspec in newcallspecs:
-                newcallspec.setmulti2(*setmulti_args)
-        except AttributeError:
-            # pytest < 3.3.0
-            for newcallspec in newcallspecs:
-                newcallspec.setmulti(*setmulti_args)
-        allnewcallspecs.extend(newcallspecs)
-    return allnewcallspecs
+
+def parametrize_callspecs(callspecs, metafunc, fname, fparams):
+    newmetafunc = copy_metafunc(metafunc)
+    newmetafunc._calls = callspecs
+    newmetafunc.fixturenames.append(fname)
+    newmetafunc.parametrize(fname, fparams, indirect=True)
+    return newmetafunc._calls
 
 
 def normalize_call(callspec, metafunc, valtype, used_keys=None):
