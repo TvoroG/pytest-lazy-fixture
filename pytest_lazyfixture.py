@@ -71,10 +71,10 @@ def pytest_generate_tests(metafunc):
     normalize_metafunc_calls(metafunc, 'params')
 
 
-def normalize_metafunc_calls(metafunc, valtype):
+def normalize_metafunc_calls(metafunc, valtype, used_keys=None):
     newcalls = []
     for callspec in metafunc._calls:
-        calls = normalize_call(callspec, metafunc, valtype)
+        calls = normalize_call(callspec, metafunc, valtype, used_keys)
         newcalls.extend(calls)
     metafunc._calls = newcalls
 
@@ -88,7 +88,7 @@ def copy_metafunc(metafunc):
     return copied
 
 
-def normalize_call(callspec, metafunc, valtype, used_keys=None):
+def normalize_call(callspec, metafunc, valtype, used_keys):
     fm = metafunc.config.pluginmanager.get_plugin('funcmanage')
 
     used_keys = used_keys or set()
@@ -110,16 +110,11 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
             newmetafunc.fixturenames = extra_fixturenames
             newmetafunc._arg2fixturedefs.update(arg2fixturedefs)
             newmetafunc._calls = [callspec]
-
             fm.pytest_generate_tests(newmetafunc)
+            normalize_metafunc_calls(newmetafunc, valtype, used_keys | set([arg]))
+            return newmetafunc._calls
 
-            newcalls = []
-            for newcallspec in newmetafunc._calls:
-                calls = normalize_call(newcallspec, metafunc, valtype, used_keys | set([arg]))
-                newcalls.extend(calls)
-            return newcalls
-
-        used_keys = used_keys | set([arg])
+        used_keys.add(arg)
     return [callspec]
 
 
