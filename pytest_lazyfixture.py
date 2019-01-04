@@ -88,14 +88,6 @@ def copy_metafunc(metafunc):
     return copied
 
 
-def parametrize_callspecs(callspecs, metafunc, fname, fparams):
-    newmetafunc = copy_metafunc(metafunc)
-    newmetafunc._calls = callspecs
-    newmetafunc.fixturenames.append(fname)
-    newmetafunc.parametrize(fname, fparams, indirect=True)
-    return newmetafunc._calls
-
-
 def normalize_call(callspec, metafunc, valtype, used_keys=None):
     fm = metafunc.config.pluginmanager.get_plugin('funcmanage')
 
@@ -111,19 +103,22 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
                 # pytest < 3.10.0
                 fixturenames_closure, arg2fixturedefs = fm.getfixtureclosure([val.name], current_node)
 
-            extra_fixture_params = [(fname, arg2fixturedefs[fname][-1].params)
-                                    for fname in fixturenames_closure if fname not in callspec.params
-                                    if arg2fixturedefs.get(fname) and arg2fixturedefs[fname][-1].params]
+            extra_fixturenames = [fname for fname in fixturenames_closure
+                                  if fname not in callspec.params and fname not in callspec.funcargs]
 
-            if extra_fixture_params:
-                newcallspecs = [callspec]
-                for fname, fparams in extra_fixture_params:
-                    newcallspecs = parametrize_callspecs(newcallspecs, metafunc, fname, fparams)
-                newcalls = []
-                for newcallspec in newcallspecs:
-                    calls = normalize_call(newcallspec, metafunc, valtype, used_keys | set([arg]))
-                    newcalls.extend(calls)
-                return newcalls
+            newmetafunc = copy_metafunc(metafunc)
+            newmetafunc.fixturenames = extra_fixturenames
+            newmetafunc._arg2fixturedefs.update(arg2fixturedefs)
+            newmetafunc._calls = [callspec]
+
+            fm.pytest_generate_tests(newmetafunc)
+
+            newcalls = []
+            for newcallspec in newmetafunc._calls:
+                calls = normalize_call(newcallspec, metafunc, valtype, used_keys | set([arg]))
+                newcalls.extend(calls)
+            return newcalls
+
         used_keys = used_keys | set([arg])
     return [callspec]
 
