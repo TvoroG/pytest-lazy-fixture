@@ -26,10 +26,10 @@ def fillfixtures(_fillfixtures):
     def fill(request):
         item = request._pyfuncitem
         fixturenames = item.fixturenames
-        argnames = item._fixtureinfo.argnames
+        autousenames = item.session._fixturemanager._getautousenames(item.nodeid)
 
         for fname in fixturenames:
-            if fname not in item.funcargs and fname not in argnames:
+            if fname not in item.funcargs and fname in autousenames:
                 item.funcargs[fname] = request.getfixturevalue(fname)
 
         if hasattr(item, 'callspec'):

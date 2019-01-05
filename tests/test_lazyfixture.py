@@ -668,3 +668,33 @@ def test_issues23(testdir, autouse):
     """.format(autouse))
     reprec = testdir.inline_run('-s', '-v')
     reprec.assertoutcome(passed=2)
+
+
+def test_lazy_fixture_nested_fixtures(testdir):
+    testdir.makepyfile("""
+        import pytest
+
+        @pytest.fixture
+        def one(request):
+            return "SOME_VALUE"
+
+        @pytest.fixture
+        def two(request):
+            return "SOME_VALUE2"
+
+        @pytest.fixture(params=[
+            pytest.lazy_fixture("one"),
+            pytest.lazy_fixture("two"),
+        ])
+        def some_fixture1(request):
+            return request.param
+
+        @pytest.fixture
+        def some_fixture2(some_fixture1):
+            return "NEW_" + some_fixture1
+
+        def test_func(some_fixture2):
+            assert ((some_fixture2 == "NEW_SOME_VALUE") or (some_fixture2 == "NEW_SOME_VALUE2"))
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=2)
