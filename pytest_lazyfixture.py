@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
+import copy
 import sys
 import types
 from collections import defaultdict
 import pytest
-from _pytest.fixtures import scopenum_function
 
 
 PY3 = sys.version_info[0] == 3
@@ -71,41 +71,24 @@ def pytest_generate_tests(metafunc):
     normalize_metafunc_calls(metafunc, 'params')
 
 
-def normalize_metafunc_calls(metafunc, valtype):
+def normalize_metafunc_calls(metafunc, valtype, used_keys=None):
     newcalls = []
     for callspec in metafunc._calls:
-        calls = normalize_call(callspec, metafunc, valtype)
+        calls = normalize_call(callspec, metafunc, valtype, used_keys)
         newcalls.extend(calls)
     metafunc._calls = newcalls
 
 
-def parametrize_callspecs(callspecs, metafunc, fname, fparams):
-    allnewcallspecs = []
-    for i, param in enumerate(fparams):
-        try:
-            newcallspecs = [call.copy() for call in callspecs]
-        except TypeError:
-            # pytest < 3.6.3
-            newcallspecs = [call.copy(metafunc) for call in callspecs]
-
-        # TODO: for now it uses only function scope
-        # TODO: idlist
-        setmulti_args = (
-            {fname: 'params'}, (fname,), (param,),
-            None, (), scopenum_function, i
-        )
-        try:
-            for newcallspec in newcallspecs:
-                newcallspec.setmulti2(*setmulti_args)
-        except AttributeError:
-            # pytest < 3.3.0
-            for newcallspec in newcallspecs:
-                newcallspec.setmulti(*setmulti_args)
-        allnewcallspecs.extend(newcallspecs)
-    return allnewcallspecs
+def copy_metafunc(metafunc):
+    copied = copy.copy(metafunc)
+    copied.fixturenames = copy.copy(metafunc.fixturenames)
+    copied._calls = []
+    copied._ids = copy.copy(metafunc._ids)
+    copied._arg2fixturedefs = copy.copy(metafunc._arg2fixturedefs)
+    return copied
 
 
-def normalize_call(callspec, metafunc, valtype, used_keys=None):
+def normalize_call(callspec, metafunc, valtype, used_keys):
     fm = metafunc.config.pluginmanager.get_plugin('funcmanage')
 
     used_keys = used_keys or set()
@@ -120,20 +103,18 @@ def normalize_call(callspec, metafunc, valtype, used_keys=None):
                 # pytest < 3.10.0
                 fixturenames_closure, arg2fixturedefs = fm.getfixtureclosure([val.name], current_node)
 
-            extra_fixture_params = [(fname, arg2fixturedefs[fname][-1].params)
-                                    for fname in fixturenames_closure if fname not in callspec.params
-                                    if arg2fixturedefs.get(fname) and arg2fixturedefs[fname][-1].params]
+            extra_fixturenames = [fname for fname in fixturenames_closure
+                                  if fname not in callspec.params and fname not in callspec.funcargs]
 
-            if extra_fixture_params:
-                newcallspecs = [callspec]
-                for fname, fparams in extra_fixture_params:
-                    newcallspecs = parametrize_callspecs(newcallspecs, metafunc, fname, fparams)
-                newcalls = []
-                for newcallspec in newcallspecs:
-                    calls = normalize_call(newcallspec, metafunc, valtype, used_keys | set([arg]))
-                    newcalls.extend(calls)
-                return newcalls
-        used_keys = used_keys | set([arg])
+            newmetafunc = copy_metafunc(metafunc)
+            newmetafunc.fixturenames = extra_fixturenames
+            newmetafunc._arg2fixturedefs.update(arg2fixturedefs)
+            newmetafunc._calls = [callspec]
+            fm.pytest_generate_tests(newmetafunc)
+            normalize_metafunc_calls(newmetafunc, valtype, used_keys | set([arg]))
+            return newmetafunc._calls
+
+        used_keys.add(arg)
     return [callspec]
 
 
