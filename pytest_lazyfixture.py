@@ -99,8 +99,11 @@ def normalize_call(callspec, metafunc, valtype, used_keys):
         if is_lazy_fixture(val):
             try:
                 _, fixturenames_closure, arg2fixturedefs = fm.getfixtureclosure([val.name], metafunc.definition.parent)
+            except ValueError:
+                # 3.6.0 <= pytest < 3.7.0; `FixtureManager.getfixtureclosure` returns 2 values
+                fixturenames_closure, arg2fixturedefs = fm.getfixtureclosure([val.name], metafunc.definition.parent)
             except AttributeError:
-                # pytest < 3.10.0
+                # pytest < 3.6.0; `Metafunc` has no `definition` attribute
                 fixturenames_closure, arg2fixturedefs = fm.getfixtureclosure([val.name], current_node)
 
             extra_fixturenames = [fname for fname in fixturenames_closure
