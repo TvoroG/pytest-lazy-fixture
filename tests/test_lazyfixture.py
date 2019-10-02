@@ -698,3 +698,141 @@ def test_lazy_fixture_nested_fixtures(testdir):
     """)
     reprec = testdir.inline_run('-s')
     reprec.assertoutcome(passed=2)
+
+
+def test_list_of_fixtures(testdir):
+    testdir.makepyfile("""
+        import pytest
+        
+        @pytest.fixture(params=[
+            pytest.lazy_fixture(['one', 'two']),
+            pytest.lazy_fixture('one', 'two'),
+            [1, pytest.lazy_fixture('two')],
+            [pytest.lazy_fixture('one'), 2],
+            [pytest.lazy_fixture('one'), pytest.lazy_fixture('two')]
+        ])
+        def some(request):
+            return request.param
+        
+        @pytest.fixture
+        def one():
+            return 1
+        
+        @pytest.fixture
+        def two():
+            return 2
+        
+        def test_func(some):
+            assert some == [1, 2]
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=5)
+
+
+def test_tuple_of_fixtures(testdir):
+    testdir.makepyfile("""
+        import pytest
+        
+        @pytest.fixture(params=[
+            pytest.lazy_fixture(('one', 'two')),
+            (1, pytest.lazy_fixture('two')),
+            (pytest.lazy_fixture('one'), 2),
+            (pytest.lazy_fixture('one'), pytest.lazy_fixture('two'))
+        ])
+        def some(request):
+            return request.param
+        
+        @pytest.fixture
+        def one():
+            return 1
+        
+        @pytest.fixture
+        def two():
+            return 2
+        
+        def test_func(some):
+            assert some == (1, 2)
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=4)
+
+
+def test_dict_of_fixtures(testdir):
+    testdir.makepyfile("""
+        import pytest
+        
+        @pytest.fixture(params=[
+            dict(one=1, two=pytest.lazy_fixture('two')),
+            dict(one=pytest.lazy_fixture('one'), two=2),
+            dict(one=pytest.lazy_fixture('one'), two=pytest.lazy_fixture('two'))
+        ])
+        def some(request):
+            return request.param
+        
+        @pytest.fixture
+        def one():
+            return 1
+        
+        @pytest.fixture
+        def two():
+            return 2
+        
+        def test_func(some):
+            assert some == dict(one=1, two=2)
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=3)
+
+
+def test_list_with_collections_of_fixtures(testdir):
+    testdir.makepyfile("""
+        import pytest
+        
+        @pytest.fixture(params=[
+            [[pytest.lazy_fixture('one')], [(2,)]],
+            [[1], [(pytest.lazy_fixture('two'),)]],
+            [[pytest.lazy_fixture('one')], [(pytest.lazy_fixture('two'),)]],
+        ])
+        def some(request):
+            return request.param
+        
+        @pytest.fixture
+        def one():
+            return 1
+        
+        @pytest.fixture
+        def two():
+            return 2
+        
+        def test_func(some):
+            assert some == [[1], [(2,)]]
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=3)
+
+
+def test_dict_with_collections_of_fixtures(testdir):
+    testdir.makepyfile("""
+        import pytest
+        
+        @pytest.fixture(params=[
+            dict(one=[pytest.lazy_fixture('one')], two=dict(two=(2,))),
+            dict(one=[1], two=dict(two=(pytest.lazy_fixture('two'),))),
+            dict(one=[pytest.lazy_fixture('one')], two=dict(two=(pytest.lazy_fixture('two'),)))
+        ])
+        def some(request):
+            return request.param
+        
+        @pytest.fixture
+        def one():
+            return 1
+        
+        @pytest.fixture
+        def two():
+            return 2
+        
+        def test_func(some):
+            assert some == dict(one=[1], two=dict(two=(2,)))
+    """)
+    reprec = testdir.inline_run('-s')
+    reprec.assertoutcome(passed=3)
