@@ -49,10 +49,21 @@ def pytest_fixture_setup(fixturedef, request):
 
 
 def pytest_runtest_call(item):
+    def _rec_part(val):
+        if is_lazy_fixture(val):
+            return item._request.getfixturevalue(val.name)
+        elif type(val) == tuple:
+            return tuple(item._request.getfixturevalue(v.name) if is_lazy_fixture(v) else _rec_part(v) for v in val)
+        elif type(val) == list:
+            return list(item._request.getfixturevalue(v.name) if is_lazy_fixture(v) else _rec_part(v) for v in val)
+        elif isinstance(val, dict):
+            return {key: item._request.getfixturevalue(v.name) if is_lazy_fixture(v) else _rec_part(v)
+                    for key, v in val.items()}
+        return val
+
     if hasattr(item, 'funcargs'):
         for arg, val in item.funcargs.items():
-            if is_lazy_fixture(val):
-                item.funcargs[arg] = item._request.getfixturevalue(val.name)
+            item.funcargs[arg] = _rec_part(val)
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -165,11 +176,19 @@ def _tree_to_list(trees, leave):
     return lst
 
 
-def lazy_fixture(names):
-    if isinstance(names, string_type):
+def lazy_fixture(names=None, *args, **kwargs):
+    if isinstance(names, string_type) and not args and not kwargs:
         return LazyFixture(names)
-    else:
-        return [LazyFixture(name) for name in names]
+    elif not kwargs:
+        names = [names] if isinstance(names, string_type) else names
+        names, is_tuple = (list(names), True) if isinstance(names, tuple) else (names, False)
+        names.extend(args)
+        if is_tuple:
+            return tuple(LazyFixture(name) for name in names)
+        else:
+            return [LazyFixture(name) for name in names]
+    elif kwargs and not (args or names):
+        return {key: LazyFixture(value) for key, value in kwargs.items()}
 
 
 def is_lazy_fixture(val):
