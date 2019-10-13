@@ -25,13 +25,15 @@ def pytest_runtest_setup(item):
 def fillfixtures(_fillfixtures):
     def fill(request):
         item = request._pyfuncitem
-        fixturenames = item.fixturenames
+        fixturenames = getattr(item, "fixturenames", None)
+        if fixturenames is None:
+            fixturenames = request.fixturenames
 
         if hasattr(item, 'callspec'):
             for param, val in sorted_by_dependency(item.callspec.params, fixturenames):
                 if val is not None and is_lazy_fixture(val):
                     item.callspec.params[param] = request.getfixturevalue(val.name)
-                else:
+                elif param not in item.funcargs:
                     item.funcargs[param] = request.getfixturevalue(param)
 
         _fillfixtures()
