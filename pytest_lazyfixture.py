@@ -25,17 +25,16 @@ def pytest_runtest_setup(item):
 def fillfixtures(_fillfixtures):
     def fill(request):
         item = request._pyfuncitem
-        fixturenames = item.fixturenames
-        autousenames = item.session._fixturemanager._getautousenames(item.nodeid)
-
-        for fname in fixturenames:
-            if fname not in item.funcargs and fname in autousenames:
-                item.funcargs[fname] = request.getfixturevalue(fname)
+        fixturenames = getattr(item, "fixturenames", None)
+        if fixturenames is None:
+            fixturenames = request.fixturenames
 
         if hasattr(item, 'callspec'):
             for param, val in sorted_by_dependency(item.callspec.params, fixturenames):
-                if is_lazy_fixture(val):
+                if val is not None and is_lazy_fixture(val):
                     item.callspec.params[param] = request.getfixturevalue(val.name)
+                elif param not in item.funcargs:
+                    item.funcargs[param] = request.getfixturevalue(param)
 
         _fillfixtures()
     return fill
@@ -126,9 +125,9 @@ def sorted_by_dependency(params, fixturenames):
     non_free_fm = defaultdict(list)
 
     for key in _sorted_argnames(params, fixturenames):
-        val = params[key]
+        val = params.get(key)
 
-        if not is_lazy_fixture(val) or val.name not in params:
+        if not val or not is_lazy_fixture(val) or val.name not in params:
             free_fm.append(key)
         else:
             non_free_fm[val.name].append(key)
@@ -139,7 +138,7 @@ def sorted_by_dependency(params, fixturenames):
             _tree_to_list(non_free_fm, free_key)
         )
 
-    return [(key, params[key]) for key in (free_fm + non_free_fm_list)]
+    return [(key, params.get(key)) for key in (free_fm + non_free_fm_list)]
 
 
 def _sorted_argnames(params, fixturenames):
@@ -148,7 +147,7 @@ def _sorted_argnames(params, fixturenames):
     for name in fixturenames:
         if name in argnames:
             argnames.remove(name)
-            yield name
+        yield name
 
     if argnames:
         for name in argnames:
