@@ -13,7 +13,7 @@ def read(fname):
 
 setup(
     name='pytest-lazy-fixture',
-    version='0.5.2',
+    version='0.6.0',
     author='Marsel Zaripov',
     author_email='marszaripov@gmail.com',
     maintainer='Marsel Zaripov',
@@ -23,7 +23,7 @@ setup(
     description='It helps to use fixtures in pytest.mark.parametrize',
     long_description=read('README.rst'),
     py_modules=['pytest_lazyfixture'],
-    install_requires=['pytest>=2.9.2'],
+    install_requires=['pytest>=3.2.5'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Framework :: Pytest',
