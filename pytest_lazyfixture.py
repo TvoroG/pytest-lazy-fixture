@@ -127,7 +127,7 @@ def sorted_by_dependency(params, fixturenames):
     for key in _sorted_argnames(params, fixturenames):
         val = params.get(key)
 
-        if not val or not is_lazy_fixture(val) or val.name not in params:
+        if key not in params or not is_lazy_fixture(val) or val.name not in params:
             free_fm.append(key)
         else:
             non_free_fm[val.name].append(key)
