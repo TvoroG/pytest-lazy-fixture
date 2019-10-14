@@ -871,11 +871,10 @@ def test_numpy_array_as_value(testdir):
             [
                 np.arange(10, dtype=np.int64),
                 np.arange(10, dtype=np.int32),
-                pytest.param(None, marks=pytest.mark.xfail)
             ]
         )
         def test_bug(value):
             assert isinstance(value, np.ndarray)
     """)
     result = testdir.inline_run('-s')
-    result.assertoutcome(passed=2, skipped=1)
+    result.assertoutcome(passed=2)
