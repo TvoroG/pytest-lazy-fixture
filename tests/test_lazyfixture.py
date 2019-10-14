@@ -2,6 +2,11 @@
 import pytest
 from pytest_lazyfixture import sorted_by_dependency, lazy_fixture, _sorted_argnames
 
+try:
+    import numpy
+except ImportError:
+    numpy = None
+
 
 def test_fixture_in_parametrize_with_params(testdir):
     items = testdir.getitems("""
@@ -852,3 +857,25 @@ def test_module_scope_runs_before_function_fixtures(testdir):
         or
         'using module fixture using fixture1 using fixture2' in stdout
     )
+
+
+# https://github.com/TvoroG/pytest-lazy-fixture/issues/42
+@pytest.mark.skipif(numpy is None, reason='numpy is not installed')
+def test_numpy_array_as_value(testdir):
+    testdir.makepyfile("""
+        import pytest
+        import numpy as np
+
+        @pytest.mark.parametrize(
+            'value',
+            [
+                np.arange(10, dtype=np.int64),
+                np.arange(10, dtype=np.int32),
+                pytest.param(None, marks=pytest.mark.xfail)
+            ]
+        )
+        def test_bug(value):
+            assert isinstance(value, np.ndarray)
+    """)
+    result = testdir.inline_run('-s')
+    result.assertoutcome(passed=2, skipped=1)
