@@ -82,7 +82,13 @@ def copy_metafunc(metafunc):
     copied = copy.copy(metafunc)
     copied.fixturenames = copy.copy(metafunc.fixturenames)
     copied._calls = []
-    copied._ids = copy.copy(metafunc._ids)
+
+    try:
+        copied._ids = copy.copy(metafunc._ids)
+    except AttributeError:
+        # pytest>=5.3.0
+        pass
+
     copied._arg2fixturedefs = copy.copy(metafunc._arg2fixturedefs)
     return copied
 
