@@ -878,3 +878,29 @@ def test_numpy_array_as_value(testdir):
     """)
     result = testdir.inline_run('-s')
     result.assertoutcome(passed=2)
+
+
+# https://github.com/TvoroG/pytest-lazy-fixture/issues/46
+def test_lazy_fixture_ids(testdir):
+    testdir.makepyfile("""
+        import pytest
+        from pytest_lazyfixture import lazy_fixture
+
+        @pytest.fixture()
+        def foo():
+            return "foo"
+
+        @pytest.fixture(params=['spam', 'eggs'])
+        def bar(request):
+            return "bar-{}".format(request.param)
+
+        @pytest.mark.parametrize("data", [lazy_fixture("foo"),
+                                          lazy_fixture("bar")])
+        def test_the_thing(data):
+            assert False
+    """)
+    result = testdir.runpytest('--collect-only')
+    stdout = result.stdout.str()
+    assert 'test_the_thing[foo]' in stdout
+    assert 'test_the_thing[bar-spam]' in stdout
+    assert 'test_the_thing[bar-eggs]' in stdout
