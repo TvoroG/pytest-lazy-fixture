@@ -62,6 +62,11 @@ def pytest_pycollect_makeitem(collector, name, obj):
     current_node = None
 
 
+def pytest_make_parametrize_id(config, val, argname):
+    if is_lazy_fixture(val):
+        return val.name
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_generate_tests(metafunc):
     yield
