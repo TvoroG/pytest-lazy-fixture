@@ -904,3 +904,9 @@ def test_lazy_fixture_ids(testdir):
     assert 'test_the_thing[foo]' in stdout
     assert 'test_the_thing[bar-spam]' in stdout
     assert 'test_the_thing[bar-eggs]' in stdout
+
+
+def test_eq():
+    assert lazy_fixture("Lol") == lazy_fixture("Lol")
+    assert lazy_fixture("Lol") != lazy_fixture("Wut")
+    assert lazy_fixture("Lol") != 123
