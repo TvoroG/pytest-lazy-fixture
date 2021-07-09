@@ -194,4 +194,6 @@ class LazyFixture(object):
         return '<{} "{}">'.format(self.__class__.__name__, self.name)
 
     def __eq__(self, other):
-        return self.name == other.name
+        if isinstance(other, LazyFixture):
+            return self.name == other.name
+        return NotImplemented
