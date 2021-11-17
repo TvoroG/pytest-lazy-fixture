@@ -10,12 +10,13 @@ except ImportError:
 
 def test_fixture_in_parametrize_with_params(testdir):
     items = testdir.getitems("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture(params=[1,2])
         def one(request):
             return request.param
         @pytest.mark.parametrize('arg1,arg2', [
-            ('val1', pytest.lazy_fixture('one')),
+            ('val1', lazy_fixture('one')),
             ('val1', 'val2')
         ])
         def test_func(arg1, arg2):
@@ -28,6 +29,7 @@ def test_fixture_in_parametrize_with_params(testdir):
 
 def test_several_fixtures_in_parametrize_with_params(testdir):
     items = testdir.getitems("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture(params=[1,2])
         def one(request):
@@ -36,7 +38,7 @@ def test_several_fixtures_in_parametrize_with_params(testdir):
         def two(request):
             return request.param
         @pytest.mark.parametrize('arg1,arg2,arg3', [
-            ('val1', pytest.lazy_fixture('one'), pytest.lazy_fixture('two')),
+            ('val1', lazy_fixture('one'), lazy_fixture('two')),
         ])
         def test_func(arg1, arg2, arg3):
             pass
@@ -57,6 +59,7 @@ def test_several_fixtures_in_parametrize_with_params(testdir):
 
 def test_fixtures_in_parametrize_with_indirect(testdir):
     items = testdir.getitems("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture
         def one():
@@ -65,7 +68,7 @@ def test_fixtures_in_parametrize_with_indirect(testdir):
         def two():
             pass
         @pytest.mark.parametrize('arg1,one', [
-            ('val1', pytest.lazy_fixture('two')),
+            ('val1', lazy_fixture('two')),
         ], indirect=['one'])
         def test_func(arg1, one):
             pass
@@ -76,6 +79,7 @@ def test_fixtures_in_parametrize_with_indirect(testdir):
 
 def test_fixtures_with_params_in_parametrize_with_indirect(testdir):
     items = testdir.getitems("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture
         def one():
@@ -84,7 +88,7 @@ def test_fixtures_with_params_in_parametrize_with_indirect(testdir):
         def two(request):
             return request.param
         @pytest.mark.parametrize('arg1,one', [
-            ('val1', pytest.lazy_fixture('two')),
+            ('val1', lazy_fixture('two')),
         ], indirect=['one'])
         def test_func(arg1, one):
             pass
@@ -96,6 +100,7 @@ def test_fixtures_with_params_in_parametrize_with_indirect(testdir):
 
 def test_lazy_fixture_is_value_in_parametrize(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture
         def one():
@@ -104,7 +109,7 @@ def test_lazy_fixture_is_value_in_parametrize(testdir):
         def two():
             return 2
         @pytest.mark.parametrize('arg1,arg2', [
-            pytest.lazy_fixture(('one', 'two'))
+            lazy_fixture(('one', 'two'))
         ])
         def test_func(arg1, arg2):
             assert arg1 == 1
@@ -116,6 +121,7 @@ def test_lazy_fixture_is_value_in_parametrize(testdir):
 
 def test_lazy_fixture_as_funcarg_in_parametrize_with_indirect(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture
         def one():
@@ -127,7 +133,7 @@ def test_lazy_fixture_as_funcarg_in_parametrize_with_indirect(testdir):
         def three(request):
             return request.param
         @pytest.mark.parametrize('arg1,arg2,three', [
-            (pytest.lazy_fixture('one'), pytest.lazy_fixture('two'), '3')
+            (lazy_fixture('one'), lazy_fixture('two'), '3')
         ], indirect=['three'])
         def test_func(arg1, arg2, three):
             assert arg1 == 1
@@ -140,6 +146,7 @@ def test_lazy_fixture_as_funcarg_in_parametrize_with_indirect(testdir):
 
 def test_lazy_fixture_is_value_in_parametrize_with_indirect(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture
         def one(request):
@@ -148,7 +155,7 @@ def test_lazy_fixture_is_value_in_parametrize_with_indirect(testdir):
         def two():
             return 2
         @pytest.mark.parametrize('one', [
-            pytest.lazy_fixture('two')
+            lazy_fixture('two')
         ], indirect=True)
         def test_func(one):
             assert one == 2
@@ -159,10 +166,11 @@ def test_lazy_fixture_is_value_in_parametrize_with_indirect(testdir):
 
 def test_lazy_fixture_as_param_of_fixture(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture(params=[
-            pytest.lazy_fixture('one'),
-            pytest.lazy_fixture('two')
+            lazy_fixture('one'),
+            lazy_fixture('two')
         ])
         def some(request):
             return request.param
@@ -181,6 +189,7 @@ def test_lazy_fixture_as_param_of_fixture(testdir):
 
 def test_lazy_fixture_in_params_which_has_params(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture(params=[1, 2, 3])
         def one(request):
@@ -189,8 +198,8 @@ def test_lazy_fixture_in_params_which_has_params(testdir):
         def two():
             return 4
         @pytest.fixture(params=[
-            pytest.lazy_fixture('one'),
-            pytest.lazy_fixture('two')
+            lazy_fixture('one'),
+            lazy_fixture('two')
         ])
         def some(request):
             return request.param
@@ -203,9 +212,10 @@ def test_lazy_fixture_in_params_which_has_params(testdir):
 
 def test_lazy_fixture_three_times_nested(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture(params=[
-            1, 2, pytest.lazy_fixture('three')])
+            1, 2, lazy_fixture('three')])
         def one(request):
             return str(request.param)
         @pytest.fixture
@@ -215,8 +225,8 @@ def test_lazy_fixture_three_times_nested(testdir):
         def three():
             return 3
         @pytest.fixture(params=[
-            pytest.lazy_fixture('one'),
-            pytest.lazy_fixture('two')
+            lazy_fixture('one'),
+            lazy_fixture('two')
         ])
         def some(request):
             return request.param
@@ -229,9 +239,10 @@ def test_lazy_fixture_three_times_nested(testdir):
 
 def test_lazy_fixture_three_times_nested_with_one_failed(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture(params=[
-            1, 2, pytest.lazy_fixture('three')
+            1, 2, lazy_fixture('three')
         ])
         def one(request):
             return str(request.param)
@@ -242,8 +253,8 @@ def test_lazy_fixture_three_times_nested_with_one_failed(testdir):
         def three():
             return 5
         @pytest.fixture(params=[
-            pytest.lazy_fixture('one'),
-            pytest.lazy_fixture('two')
+            lazy_fixture('one'),
+            lazy_fixture('two')
         ])
         def some(request):
             return request.param
@@ -256,14 +267,15 @@ def test_lazy_fixture_three_times_nested_with_one_failed(testdir):
 
 def test_lazy_fixture_common_dependency(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture(params=[1, 2, 3])
         def one(request):
             return request.param
-        @pytest.fixture(params=[pytest.lazy_fixture('one')])
+        @pytest.fixture(params=[lazy_fixture('one')])
         def as_str(request):
             return str(request.param)
-        @pytest.fixture(params=[pytest.lazy_fixture('one')])
+        @pytest.fixture(params=[lazy_fixture('one')])
         def as_hex(request):
             return hex(request.param)
 
@@ -281,14 +293,15 @@ def test_lazy_fixture_common_dependency(testdir):
 
 def test_lazy_fixture_common_dependency_with_getfixturevalue(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture(params=[1, 2, 3])
         def one(request):
             return request.param
-        @pytest.fixture(params=[pytest.lazy_fixture('one')])
+        @pytest.fixture(params=[lazy_fixture('one')])
         def as_str(request):
             return str(request.getfixturevalue('one'))
-        @pytest.fixture(params=[pytest.lazy_fixture('one')])
+        @pytest.fixture(params=[lazy_fixture('one')])
         def as_hex(request):
             return hex(request.getfixturevalue('one'))
         def test_as_str(as_str):
@@ -304,12 +317,13 @@ def test_lazy_fixture_common_dependency_with_getfixturevalue(testdir):
 
 def test_issues2(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture(params=[1, 2, 3])
         def one(request):
             return request.param
 
-        @pytest.fixture(params=[pytest.lazy_fixture('one')])
+        @pytest.fixture(params=[lazy_fixture('one')])
         def as_str(request):
             return str(request.getfixturevalue('one'))
 
@@ -324,12 +338,13 @@ def test_issues2(testdir):
 
 def test_issues2_2(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture(params=[1, 2, 3])
         def one(request):
             return request.param
 
-        @pytest.fixture(params=[pytest.lazy_fixture('one')])
+        @pytest.fixture(params=[lazy_fixture('one')])
         def as_str(request):
             return str(request.getfixturevalue('one'))
 
@@ -346,6 +361,7 @@ def test_issues2_2(testdir):
 
 def test_issues3_autouse_fixtures_should_run_first(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         gl = False
         @pytest.fixture(autouse=True)
@@ -358,7 +374,7 @@ def test_issues3_autouse_fixtures_should_run_first(testdir):
             return 1 if gl is True else -1
 
         @pytest.mark.parametrize('arg1', [
-            pytest.lazy_fixture('one')
+            lazy_fixture('one')
         ])
         def test_some(arg1):
             assert arg1 == 1
@@ -369,6 +385,7 @@ def test_issues3_autouse_fixtures_should_run_first(testdir):
 
 def test_issues10_xfail(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         def division(a, b):
             return a / b
@@ -378,7 +395,7 @@ def test_issues10_xfail(testdir):
             return request.param
 
         @pytest.mark.parametrize(('a', 'b'), [
-            pytest.param(1, pytest.lazy_fixture('zero'), marks=pytest.mark.xfail(reason=ZeroDivisionError))
+            pytest.param(1, lazy_fixture('zero'), marks=pytest.mark.xfail(reason=ZeroDivisionError))
         ])
         def test_division(a, b):
             division(a, b)
@@ -409,6 +426,7 @@ def test_issues11_autouse_fixture_in_test_class(testdir):
 
 def test_issues12_skip_test_function(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
 
         @pytest.fixture
@@ -416,14 +434,14 @@ def test_issues12_skip_test_function(testdir):
             return 1
 
         @pytest.mark.parametrize('a', [
-            pytest.param(pytest.lazy_fixture('one'), marks=pytest.mark.skip(reason='skip'))
+            pytest.param(lazy_fixture('one'), marks=pytest.mark.skip(reason='skip'))
         ])
         def test_skip1(a):
             assert a == 1
 
         @pytest.mark.skip(reason='skip')
         @pytest.mark.parametrize('a', [
-            pytest.lazy_fixture('one')
+            lazy_fixture('one')
         ])
         def test_skip2(a):
             assert a == 1
@@ -437,6 +455,7 @@ def test_issues12_skip_test_function(testdir):
 
 def test_issues12_skip_test_method(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
 
         class TestModels:
@@ -446,13 +465,13 @@ def test_issues12_skip_test_method(testdir):
 
             @pytest.mark.skip(reason='skip this')
             @pytest.mark.parametrize('a', [
-                pytest.lazy_fixture('one')
+                lazy_fixture('one')
             ])
             def test_model_a(self, a):
                 assert a == 1
 
             @pytest.mark.parametrize('a', [
-                pytest.param(pytest.lazy_fixture('one'), marks=pytest.mark.skip(reason='skip this'))
+                pytest.param(lazy_fixture('one'), marks=pytest.mark.skip(reason='skip this'))
             ])
             def test_model_b(self, a):
                 assert a == 1
@@ -466,6 +485,7 @@ def test_issues12_skip_test_method(testdir):
 
 def test_issues12_lf_as_method_of_test_class(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
 
         class TestModels:
@@ -474,7 +494,7 @@ def test_issues12_lf_as_method_of_test_class(testdir):
                 return 1
 
             @pytest.mark.parametrize('a', [
-                pytest.lazy_fixture('one')
+                lazy_fixture('one')
             ])
             def test_lf(self, a):
                 assert a == 1
@@ -501,6 +521,7 @@ def test_issues13_unittest_testcase_class_should_not_fail(testdir):
 
 def test_argnames_initialized_in_right_order(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture
         def one():
@@ -511,7 +532,7 @@ def test_argnames_initialized_in_right_order(testdir):
             a[0] = a[0] + 2
 
         @pytest.mark.parametrize('a,b', [
-            (pytest.lazy_fixture('one'), pytest.lazy_fixture('plus_two'))
+            (lazy_fixture('one'), lazy_fixture('plus_two'))
         ])
         def test_skip1(a, b):
             assert a == [3]
@@ -523,6 +544,7 @@ def test_argnames_initialized_in_right_order(testdir):
 # https://github.com/TvoroG/pytest-lazy-fixture/pull/19
 def test_argnames_initialized_in_right_order2(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
         @pytest.fixture
         def one():
@@ -537,7 +559,7 @@ def test_argnames_initialized_in_right_order2(testdir):
         def pytest_generate_tests(metafunc):
             metafunc.fixturenames = ['a', 'b']
             metafunc.parametrize(argnames=['a', 'b'],
-                                 argvalues=[(pytest.lazy_fixture('one'), pytest.lazy_fixture('plus_two'))],
+                                 argvalues=[(lazy_fixture('one'), lazy_fixture('plus_two'))],
                                  indirect=['b'])
 
     """)
@@ -589,6 +611,7 @@ def test_sorted_argnames(params, fixturenames, expect_keys):
 
 def test_lazy_fixtures_with_subfixtures(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
 
         @pytest.fixture(params=["a", "A"])
@@ -603,11 +626,11 @@ def test_lazy_fixtures_with_subfixtures(testdir):
         def c(a):
             return "c" + a
 
-        @pytest.fixture(params=[pytest.lazy_fixture('a'), pytest.lazy_fixture('b'), pytest.lazy_fixture('c')])
+        @pytest.fixture(params=[lazy_fixture('a'), lazy_fixture('b'), lazy_fixture('c')])
         def d(request):
             return "d" + request.param
 
-        @pytest.fixture(params=[pytest.lazy_fixture('a'), pytest.lazy_fixture('d'), ""])
+        @pytest.fixture(params=[lazy_fixture('a'), lazy_fixture('d'), ""])
         def e(request):
             return "e" + request.param
 
@@ -623,6 +646,7 @@ def test_lazy_fixtures_with_subfixtures(testdir):
 
 def test_lazy_fixtures_in_subfixture(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
 
         @pytest.fixture
@@ -633,7 +657,7 @@ def test_lazy_fixtures_in_subfixture(testdir):
         def b():
             return "b"
 
-        @pytest.fixture(params=[pytest.lazy_fixture('a'), pytest.lazy_fixture('b')])
+        @pytest.fixture(params=[lazy_fixture('a'), lazy_fixture('b')])
         def c(request):
             return "c" + request.param
 
@@ -651,6 +675,7 @@ def test_lazy_fixtures_in_subfixture(testdir):
 @pytest.mark.parametrize('autouse', [False, True])
 def test_issues23(testdir, autouse):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
 
         @pytest.fixture(params=[0, 1], autouse={})
@@ -662,7 +687,7 @@ def test_issues23(testdir, autouse):
             return zero * request.param
 
         @pytest.fixture(params=[
-            pytest.lazy_fixture('one'),
+            lazy_fixture('one'),
         ])
         def some(request):
             return request.param
@@ -677,6 +702,7 @@ def test_issues23(testdir, autouse):
 
 def test_lazy_fixture_nested_fixtures(testdir):
     testdir.makepyfile("""
+        from pytest_lazyfixture import lazy_fixture
         import pytest
 
         @pytest.fixture
@@ -688,8 +714,8 @@ def test_lazy_fixture_nested_fixtures(testdir):
             return "SOME_VALUE2"
 
         @pytest.fixture(params=[
-            pytest.lazy_fixture("one"),
-            pytest.lazy_fixture("two"),
+            lazy_fixture("one"),
+            lazy_fixture("two"),
         ])
         def some_fixture1(request):
             return request.param

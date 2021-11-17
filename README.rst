@@ -16,13 +16,14 @@ Usage
 .. code-block:: python
 
     import pytest
+    from pytest_lazyfixture import lazy_fixture
 
     @pytest.fixture(params=[1, 2])
     def one(request):
         return request.param
 
     @pytest.mark.parametrize('arg1,arg2', [
-        ('val1', pytest.lazy_fixture('one')),
+        ('val1', lazy_fixture('one')),
     ])
     def test_func(arg1, arg2):
         assert arg2 in [1, 2]
@@ -33,10 +34,11 @@ Also you can use it as a parameter in ``@pytest.fixture``:
 .. code-block:: python
 
     import pytest
+    from pytest_lazyfixture import lazy_fixture
 
     @pytest.fixture(params=[
-        pytest.lazy_fixture('one'),
-        pytest.lazy_fixture('two')
+        lazy_fixture('one'),
+        lazy_fixture('two')
     ])
     def some(request):
         return request.param
