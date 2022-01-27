@@ -31,7 +31,7 @@ in ``@pytest.mark.parametrize``:
     def test_func(arg1, arg2):
         assert arg2 == 1
 
-This can be even more useful when the fixture is itself parametrized.
+This can be even more useful when the fixture is itself parametrized:
 
 .. code-block:: python
 
