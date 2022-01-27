@@ -13,6 +13,26 @@ Installation
 Usage
 -----
 
+pytest-lazy-fixture lets you use a fixture as one of the values passed
+in ``@pytest.mark.parametrize``:
+
+.. code-block:: python
+
+    import pytest
+    from pytest_lazyfixture import lazy_fixture
+
+    @pytest.fixture
+    def one():
+        return 1
+
+    @pytest.mark.parametrize('arg1,arg2', [
+        ('val1', lazy_fixture('one')),
+    ])
+    def test_func(arg1, arg2):
+        assert arg2 == 1
+
+This can be even more useful when the fixture is itself parametrized.
+
 .. code-block:: python
 
     import pytest
