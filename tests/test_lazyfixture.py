@@ -936,3 +936,55 @@ def test_eq():
     assert lazy_fixture("Lol") == lazy_fixture("Lol")
     assert lazy_fixture("Lol") != lazy_fixture("Wut")
     assert lazy_fixture("Lol") != 123
+
+def test_lambda_function(testdir):
+    testdir.makepyfile("""
+        import pytest
+        from pytest_lazyfixture import lazy_fixture
+
+        @pytest.fixture
+        def foo():
+            return 1
+        
+        @pytest.fixture
+        def bar():
+            return 2
+
+        @pytest.mark.parametrize(
+            "data",
+            [
+                lazy_fixture(lambda foo, bar: [foo, bar])
+            ]
+        )
+        def test_the_thing(data):
+            assert data == [1, 2]
+    """)
+    reprec = testdir.inline_run('-vvv')
+    reprec.assertoutcome(passed=1)
+
+
+def test_lambda_function_item_names(testdir):
+    items = testdir.getitems("""
+        import pytest
+        from pytest_lazyfixture import lazy_fixture
+
+        @pytest.fixture
+        def foo():
+            return 1
+        
+        @pytest.fixture
+        def bar():
+            return 2
+
+        @pytest.mark.parametrize(
+            "data",
+            [
+                lazy_fixture(lambda foo, bar: [foo, bar])
+            ]
+        )
+        def test_the_thing(data):
+            assert data == [1, 2]
+            assert baz == 3
+    """)
+    [item] = items
+    assert item.name == "test_the_thing[<<lambda>:foo-bar>]"

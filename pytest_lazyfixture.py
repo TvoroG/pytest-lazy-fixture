@@ -3,6 +3,7 @@ import copy
 import sys
 import types
 from collections import defaultdict
+from inspect import signature
 import pytest
 
 
@@ -32,7 +33,7 @@ def fillfixtures(_fillfixtures):
         if hasattr(item, 'callspec'):
             for param, val in sorted_by_dependency(item.callspec.params, fixturenames):
                 if val is not None and is_lazy_fixture(val):
-                    item.callspec.params[param] = request.getfixturevalue(val.name)
+                    item.callspec.params[param] = val.evaluate(request)
                 elif param not in item.funcargs:
                     item.funcargs[param] = request.getfixturevalue(param)
 
@@ -44,14 +45,14 @@ def fillfixtures(_fillfixtures):
 def pytest_fixture_setup(fixturedef, request):
     val = getattr(request, 'param', None)
     if is_lazy_fixture(val):
-        request.param = request.getfixturevalue(val.name)
+        request.param = val.evaluate(request)
 
 
 def pytest_runtest_call(item):
     if hasattr(item, 'funcargs'):
         for arg, val in item.funcargs.items():
             if is_lazy_fixture(val):
-                item.funcargs[arg] = item._request.getfixturevalue(val.name)
+                item.funcargs[arg] = val.evaluate(item._request)
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -176,7 +177,7 @@ def _tree_to_list(trees, leave):
 
 
 def lazy_fixture(names):
-    if isinstance(names, string_type):
+    if isinstance(names, string_type) or callable(names):
         return LazyFixture(names)
     else:
         return [LazyFixture(name) for name in names]
@@ -188,7 +189,24 @@ def is_lazy_fixture(val):
 
 class LazyFixture(object):
     def __init__(self, name):
-        self.name = name
+        if isinstance(name, str):
+            self.name = name
+            self.fn = None
+            self.args = [name]
+        elif callable(name):
+            self.fn = name
+            params = signature(self.fn).parameters.values()
+            self.args = [param.name for param in params if param.kind == param.POSITIONAL_OR_KEYWORD]
+            self.name = "<" + name.__name__ + ":" + "-".join(self.args) + ">"
+        else:
+            raise TypeError(f"Unsupported parameter: {name!r}")
+    
+    def evaluate(self, request):
+        if self.fn is not None:
+            kwargs = {arg: request.getfixturevalue(arg) for arg in self.args}
+            return self.fn(**kwargs)
+        else:
+            return request.getfixturevalue(self.name)
 
     def __repr__(self):
         return '<{} "{}">'.format(self.__class__.__name__, self.name)
