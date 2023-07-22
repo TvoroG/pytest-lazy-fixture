@@ -30,6 +30,14 @@ in ``@pytest.mark.parametrize``:
     ])
     def test_func(arg1, arg2):
         assert arg2 == 1
+    
+
+    # Callables are accepted too:
+    @pytest.mark.parametrize('arg', [
+        lazy_fixture(lambda one: one + 9)),
+    ])
+    def test_func(arg):
+        assert arg == 10
 
 This can be even more useful when the fixture is itself parametrized:
 
