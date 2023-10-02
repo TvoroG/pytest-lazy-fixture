@@ -4,6 +4,10 @@ import sys
 import types
 from collections import defaultdict
 import pytest
+try:
+    from pytest_rerunfailures import get_reruns_count
+except ImportError:
+    get_reruns_count = None
 
 
 PY3 = sys.version_info[0] == 3
@@ -22,6 +26,24 @@ def pytest_runtest_setup(item):
         )
 
 
+def pytest_runtest_teardown(item, nextitem):
+    """ Add support for the pytest-rerunfailures plugin"""
+    if get_reruns_count:
+        reruns = get_reruns_count(item)
+        if reruns is None:
+            return
+        if not hasattr(item, "execution_count"):
+            # pytest_runtest_protocol hook of this plugin was not executed
+            # -> teardown needs to be skipped as well
+            return
+        if item.execution_count <= reruns and any(item._test_failed_statuses.values()):
+            # remove any resolved lazy fixtures
+            if hasattr(item, "callspec"):
+                for key, value in item.callspec.params.items():
+                    if item.stash.get(key, None) and item.stash[key]["is_lazy_fixture"]:
+                        item.callspec.params[key] = lazy_fixture(item.stash[key]["name"])
+
+
 def fillfixtures(_fillfixtures):
     def fill(request):
         item = request._pyfuncitem
@@ -33,6 +55,8 @@ def fillfixtures(_fillfixtures):
             for param, val in sorted_by_dependency(item.callspec.params, fixturenames):
                 if val is not None and is_lazy_fixture(val):
                     item.callspec.params[param] = request.getfixturevalue(val.name)
+                    # stash the fixture value in the item, so it can be used as a backref
+                    item.stash[param] = {'is_lazy_fixture': True, "name": val.name}
                 elif param not in item.funcargs:
                     item.funcargs[param] = request.getfixturevalue(param)
 
